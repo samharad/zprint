@@ -52,7 +52,7 @@
 ;; Another couple of fidelity tests of two of our actual functions
 ;;
 
-(def y1 (source-fn 'fzprint*))
+(def y1 (source-fn 'fzprint-map-two-up))
 (expect (read-string y1) (read-string (zprint-str y1 {:parse-string? true})))
 
 (def y2 (source-fn 'partition-all-2-nc))

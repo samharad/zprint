@@ -1,8 +1,12 @@
-(ns zprint.zprint
-    (:require
-     [clojure.string :as s]
-     [zprint.ansi :refer [color-str]]
-     [zprint.zutil :refer [add-spec-to-docstring]]))
+(ns
+  zprint.zprint
+  #?@(:cljs [[:require-macros
+              [zprint.macros :refer [dbg dbg-pr dbg-form dbg-print]]]])
+  (:require
+   #?@(:clj [[zprint.macros :refer [dbg-pr dbg dbg-form dbg-print]]])
+   [clojure.string :as s]
+   [zprint.ansi :refer [color-str]]
+   [zprint.zutil :refer [add-spec-to-docstring]]))
 
 ;;
 ;; # Utility Functions
@@ -42,30 +46,6 @@
 
 (def fzprint-dbg (atom nil))
 
-(defmacro dbg-pr
-  "Output debugging print with pr."
-  [options & rest]
-  `(when (:dbg? ~options) (println (:dbg-indent ~options) (pr-str ~@rest))))
-  
-(defmacro dbg
-  "Output debugging print with println."
-  [options & rest]
-  `(when (:dbg? ~options) (println (:dbg-indent ~options) ~@rest)))
-
-(defmacro dbg-form
-  "Output debugging print with println, and always return value."
-  [options id form]
-  `(let [value# ~form]
-     (when (:dbg? ~options)
-       (println (:dbg-indent ~options) ~id (pr-str value#)))
-     value#))
-
-(defmacro dbg-print
-  "Output debugging print with println."
-  [options & rest]
-  `(when (or (:dbg? ~options) (:dbg-print? ~options))
-     (println (:dbg-indent ~options) ~@rest)))
-     
 (defn log-lines
   "Accept a style-vec that we are about to hand to style-lines, and
   output it if called for, to aid in debugging."
@@ -94,9 +74,16 @@
           ; resolve will have a problem with.  The obvious ones
           ; were (ns-name <some-namespace>), but there are almost
           ; certainly others.
-          (try (or (re-find #"clojure" (str (:ns (meta (resolve f)))))
-                   (fn-map (name f)))
-               (catch Exception e nil)))))))
+          (try
+            (or (re-find #"clojure"
+                         (str (:ns
+                               (meta #?(:clj (resolve f)
+                                        :cljs f)))))
+                (fn-map (name f)))
+            (catch #?(:clj Exception
+                      :cljs :default)
+                   e
+                   nil)))))))
 
 (defn show-user-fn?
   "Show this thing as a user defined function?  Assumes that we
@@ -112,9 +99,15 @@
           ; resolve will have a problem with.  The obvious ones
           ; were (ns-name <some-namespace>), but there are almost
           ; certainly others.
-          (try (or (not (empty? (str (:ns (meta (resolve f))))))
-                   (get user-fn-map (name f)))
-               (catch Exception e nil)))))))
+          (try
+            (or (not (empty? (str (:ns
+                                   (meta #?(:clj (resolve f)
+                                            :cljs f))))))
+                (get user-fn-map (name f)))
+            (catch #?(:clj Exception
+                      :cljs :default)
+                   e
+                   nil)))))))
 
 (def right-separator-map {")" 1, "]" 1, "}" 1})
 
@@ -812,7 +805,9 @@
                    (zsexpr (first %2)))
                 out)
         sort? (sort #(compare-keys (zsexpr (first %1)) (zsexpr (first %2))) out)
-        :else (throw (Exception. "Unknown options to order-out"))))
+        :else (throw (#?(:clj Exception.
+                         :cljs js/Error.)
+                      "Unknown options to order-out"))))
 
 (defn pair-element?
   "This checks to see if an element should be considered part of a pair.
@@ -1501,7 +1496,7 @@
         ; if we don't have a function style, let's see if we can get
         ; one by removing the namespacing
         fn-style (if (and (not fn-style) fn-str)
-                   (fn-map (last (clojure.string/split fn-str #"\/")))
+                   (fn-map (last (clojure.string/split fn-str #"/")))
                    fn-style)
         ; set indent based on fn-style
         indent (if (body-set fn-style) indent (or indent-arg indent))
@@ -2017,7 +2012,8 @@
 (defn hash-identity-str
   "Find the hash-code identity for an object."
   [obj]
-  (Integer/toHexString (System/identityHashCode obj)))
+  #?(:clj (Integer/toHexString (System/identityHashCode obj))
+     :cljs (str (hash obj))))
 
 ; (with-out-str
 ;    (printf "%08x" (System/identityHashCode obj))))
@@ -2060,9 +2056,11 @@
                         (zpromise? zloc) :promise
                         (zdelay? zloc) :delay
                         (zagent? zloc) :agent
-                        :else (throw (Exception.
-                                       "Not a future, promise, or delay:"
-                                       (zstring zloc))))]
+                        :else (throw
+                                (#?(:clj Exception.
+                                    :cljs js/Error.)
+                                 "Not a future, promise, or delay:"
+                                 (zstring zloc))))]
     (if (and (:object? (options zloc-type)) (object-str? (zstring zloc)))
       (if (or (= zloc-type :agent) (realized? zloc))
         (fzprint-object options ind zloc (zderef zloc))
@@ -2078,19 +2076,21 @@
                        :delay "Delay@"
                        :agent "Agent@")
             arg-1 (str type-str (hash-identity-str zloc))
-            arg-1 (if (and (= zloc-type :agent) (agent-error zloc))
-                    (str arg-1 " FAILED")
-                    arg-1)
-            arg-1-indent (+ ind indent 1 (count arg-1))
-            zloc-realized? (if (= zloc-type :agent) true (realized? zloc))
-            value (if zloc-realized?
-                    (zderef zloc)
-                    (case zloc-type
-                      :future "pending"
-                      :promise "not-delivered"
-                      :delay "pending"))
-            options
-              (if zloc-realized? options (assoc options :string-str? true))]
+            #?@(:clj [arg-1
+                      (if (and (= zloc-type :agent) (agent-error zloc))
+                        (str arg-1 " FAILED")
+                        arg-1)])
+              arg-1-indent
+            (+ ind indent 1 (count arg-1)) zloc-realized?
+            (if (= zloc-type :agent) true (realized? zloc)) value
+            (if zloc-realized?
+              (zderef zloc)
+              (case zloc-type
+                :future "pending"
+                :promise "not-delivered"
+                :delay "pending"))
+              options
+            (if zloc-realized? options (assoc options :string-str? true))]
         (dbg-pr options
                 "fzprint-fpda: arg-1:" arg-1
                 "zstring arg-1:" (zstring zloc))
@@ -2105,7 +2105,8 @@
 
 (defn fzprint-fn-obj
   "Print a function object, what you get when you put a function in
-  a collection, for instance.  This doesn't do macros, you will notice."
+  a collection, for instance.  This doesn't do macros, you will notice.
+  It also can't be invoked when zloc is a zipper."
   [{:keys [width dbg? one-line?],
     {:keys [zstring zfirst zderef]} :zf,
     {:keys [object?]} :fn-obj,
@@ -2120,12 +2121,22 @@
           arg-1-left "Fn@"
           arg-1-right (hash-identity-str zloc)
           arg-1-indent (+ ind indent 1 (count arg-1-left) (count arg-1-right))
-          class-str (pr-str (class zloc))
-          [class-name & more] (s/split (s/replace-first class-str #"\$" "/")
-                                       #"\$")
-          color
-            (if (re-find #"clojure" class-name) (zcolor-map options :fn) :none)
-          arg-2 (str class-name (when more "[fn]"))]
+          class-str (pr-str #?(:clj (class zloc)
+                               :cljs (type zloc)))
+          #?@(:clj [[class-name & more]
+                    (s/split (s/replace-first class-str #"\$" "/") #"\$") color
+                    (if (re-find #"clojure" class-name)
+                      (zcolor-map options :fn)
+                      :none) arg-2 (str class-name (when more "[fn]"))]
+              :cljs [name-js (str (.-name zloc)) color
+                     (if (or (re-find #"^clojure" name-js)
+                             (re-find #"^cljs" name-js))
+                       (zcolor-map options :fn)
+                       :none) name-split (clojure.string/split name-js #"\$")
+                     arg-2
+                     (str (apply str (interpose "." (butlast name-split)))
+                          "/"
+                          (last name-split))])]
       (dbg-pr options
               "fzprint-fn-obj: arg-1:"
               arg-1-left
@@ -2182,7 +2193,8 @@
             indent (count l-str)
             l-str-vec [[l-str (zcolor-map options l-str) :left]]
             r-str-vec (rstr-vec options (+ indent ind) zloc r-str)
-            arg-1 (pr-str (class zloc))
+            arg-1 (pr-str #?(:clj (class zloc)
+                             :cljs (type zloc)))
             arg-1 (let [tokens (clojure.string/split arg-1 #"\.")]
                     (apply str
                       (conj (into [] (interpose "." (butlast tokens)))
@@ -2266,9 +2278,11 @@
         l-str (cond (and reader-cond? at?) "#?@"
                     (and reader-cond? (zcoll? (zsecond zloc))) "#?"
                     reader-cond?
-                      (throw (Exception.
-                               (str "Unknown reader macro: '" (zstring zloc)
-                                    "' zfirst zloc: " (zstring (zfirst zloc)))))
+                      (throw
+                        (#?(:clj Exception.
+                            :cljs js/Error.)
+                         (str "Unknown reader macro: '" (zstring zloc)
+                              "' zfirst zloc: " (zstring (zfirst zloc)))))
                     :else "#")
         r-str ""
         indent (count l-str)
@@ -2351,7 +2365,7 @@
            one-line? string-str? string-color depth max-depth],
     {:keys [zfind-path zlist? zvector? zmap? zset? zanonfn? zfn-obj? zuneval?
             zwhitespace? zstring zcomment? zsexpr zcoll? zarray? zexpandarray
-            zatom? znumstr zbyte-array? zrecord? zns? zmeta? ztag znewline?
+            zatom? znumstr zrecord? zns? zmeta? ztag znewline?
             zwhitespaceorcomment? zpromise? zfuture? zreader-macro? zdelay?
             zagent? zarray-to-shift-seq zdotdotdot]}
       :zf,
@@ -2374,44 +2388,46 @@
         options (if dbg-focus? (assoc options :dbg :on) options)
         _ (if dbg-focus? (println "fzprint dbg-data:" dbg-data))]
     #_(def zlocx zloc)
-    (cond
-      (and (> depth max-depth) (zcoll? zloc))
-        (if (= zloc (zdotdotdot))
-          [["..." (zcolor-map options :none) :element]]
-          [["##" (zcolor-map options :keyword) :element]])
-      (zrecord? zloc) (fzprint-record options indent zloc)
-      (zlist? zloc) (fzprint-list options indent zloc)
-      (zvector? zloc) (fzprint-vec options indent zloc)
-      (zmap? zloc) (fzprint-map options indent zloc)
-      (zset? zloc) (fzprint-set options indent zloc)
-      (zanonfn? zloc) (fzprint-anon-fn options indent zloc)
-      (zfn-obj? zloc) (fzprint-fn-obj options indent zloc)
-      (zarray? zloc) (if (:object? (:array options))
-                       (fzprint-object options indent zloc)
-                       (fzprint-array (if (:hex? (:array options))
-                                        (assoc options
-                                          :hex? (:hex? (:array options))
-                                          :shift-seq (zarray-to-shift-seq zloc))
-                                        options)
+    (cond (and (> depth max-depth) (zcoll? zloc))
+            (if (= zloc (zdotdotdot))
+              [["..." (zcolor-map options :none) :element]]
+              [["##" (zcolor-map options :keyword) :element]])
+          (zrecord? zloc) (fzprint-record options indent zloc)
+          (zlist? zloc) (fzprint-list options indent zloc)
+          (zvector? zloc) (fzprint-vec options indent zloc)
+          (zmap? zloc) (fzprint-map options indent zloc)
+          (zset? zloc) (fzprint-set options indent zloc)
+          (zanonfn? zloc) (fzprint-anon-fn options indent zloc)
+          (zfn-obj? zloc) (fzprint-fn-obj options indent zloc)
+          (zarray? zloc) (if (:object? (:array options))
+                           (fzprint-object options indent zloc)
+                           (fzprint-array
+                             #?(:clj (if (:hex? (:array options))
+                                       (assoc options
+                                         :hex? (:hex? (:array options))
+                                         :shift-seq (zarray-to-shift-seq zloc))
+                                       options)
+                                :cljs options)
+                             indent
+                             (zexpandarray zloc)))
+          (zatom? zloc) (fzprint-atom options indent zloc)
+          (zmeta? zloc) (fzprint-meta options indent zloc)
+          (prefix-tags (ztag zloc)) (fzprint-prefix*
+                                      (prefix-options options (ztag zloc))
                                       indent
-                                      (zexpandarray zloc)))
-      (zatom? zloc) (fzprint-atom options indent zloc)
-      (zmeta? zloc) (fzprint-meta options indent zloc)
-      (prefix-tags (ztag zloc)) (fzprint-prefix* (prefix-options options
-                                                                 (ztag zloc))
-                                                 indent
-                                                 zloc
-                                                 (prefix-tags (ztag zloc)))
-      (zns? zloc) (fzprint-ns options indent zloc)
-      (or (zpromise? zloc) (zfuture? zloc) (zdelay? zloc) (zagent? zloc))
-        (fzprint-future-promise-delay-agent options indent zloc)
-      (zreader-macro? zloc) (fzprint-reader-macro options indent zloc)
-      :else
-        (let [zstr (zstring zloc)
-              overflow-in-hang? (and in-hang?
-                                     (> (+ (count zstr) indent (or rightcnt 0))
-                                        width))]
-          (cond (zcomment? zloc)
+                                      zloc
+                                      (prefix-tags (ztag zloc)))
+          (zns? zloc) (fzprint-ns options indent zloc)
+          (or (zpromise? zloc) (zfuture? zloc) (zdelay? zloc) (zagent? zloc))
+            (fzprint-future-promise-delay-agent options indent zloc)
+          (zreader-macro? zloc) (fzprint-reader-macro options indent zloc)
+          :else
+            (let [zstr (zstring zloc)
+                  overflow-in-hang?
+                    (and in-hang?
+                         (> (+ (count zstr) indent (or rightcnt 0)) width))]
+              (cond
+                (zcomment? zloc)
                   (let [zcomment
                           ; Do we have a file-level comment?
                           (if (zero? depth)

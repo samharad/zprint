@@ -1,31 +1,24 @@
 (ns
   zprint.core
+  ;#?@(:cljs [[:require-macros [zprint.macros :refer [dbg dbg-pr dbg-form
+  ;dbg-print]]]])
   (:require
-   [clojure.repl :refer [source-fn]]
+   #?@(:clj [[zprint.macros :refer [dbg-pr dbg dbg-form dbg-print]]])
+   clojure.string
+   #?@(:cljs [[cljs.reader :refer [read-string]]])
+   #?@(:clj [[clojure.repl :refer [source-fn]]])
    [zprint.zprint :as zprint :refer
     [fzprint blanks line-count max-width line-widths expand-tabs merge-deep]]
    [zprint.finish :refer
     [cvec-to-style-vec compress-style no-style-map color-comp-vec cursor-style]]
    [zprint.config :as config :refer
-    [config-set-options! get-options config-configure-all! help-str]]
-   [zprint.zutil :refer [zmap-all zcomment?]]
-   [zprint.sutil]
-   [zprint.config :as config :refer
-    [get-explained-options get-explained-all-options get-default-options
+    [config-set-options! get-options config-configure-all! help-str
+     get-explained-options get-explained-all-options get-default-options
      validate-options apply-style]]
-   clojure.string
-   #_[clojure.spec :as spec :refer [get-spec describe]]
-   [clojure.java.io :refer [reader]]
+   [zprint.zutil :refer [zmap-all zcomment? edn* whitespace? string]]
+   [zprint.sutil]
    [rewrite-clj.parser :as p]
-   [rewrite-clj.node :as n]
-   [rewrite-clj.zip :as z :only [edn* position]])
-  (:import
-   (java.io InputStreamReader
-            OutputStreamWriter
-            FileReader
-            BufferedReader
-            FileInputStream))
-  (:gen-class))
+   #_[clojure.spec :as spec :refer [get-spec describe]]))
 
 ;;
 ;; zprint
@@ -139,7 +132,7 @@
               (expand-tabs (:size (:tab options)) x)
               x)
           n (p/parse-string x)]
-      (when n (z/edn* n)))
+      (when n (edn* n)))
     (when (zipper? x) x)))
 
 ;;
@@ -150,17 +143,22 @@
   "Do a basic zprint and output the style vector and the options used for
   further processing: [<style-vec> options]"
   [coll options]
-  (let [input (cond (:zipper? options)
-                      (if (zipper? coll)
-                        coll
-                        (throw (Exception. (str "Collection is not a zipper"
-                                                " yet :zipper? specified!"))))
-                    (:parse-string? options)
-                      (if (string? coll)
-                        (get-zipper options coll)
-                        (throw (Exception. (str
-                                             "Collection is not a string yet"
-                                             " :parse-string? specified!")))))
+  (let [input
+          (cond (:zipper? options) (if (zipper? coll)
+                                     coll
+                                     (throw
+                                       (#?(:clj Exception.
+                                           :cljs js/Error.)
+                                        (str "Collection is not a zipper"
+                                             " yet :zipper? specified!"))))
+                (:parse-string? options)
+                  (if (string? coll)
+                    (get-zipper options coll)
+                    (throw
+                      (#?(:clj Exception.
+                          :cljs js/Error.)
+                       (str "Collection is not a string yet"
+                            " :parse-string? specified!")))))
         z-type (if input :zipper :sexpr)
         input (or input coll)]
     (if (nil? input)
@@ -169,6 +167,7 @@
               (assoc options
                 :ztype z-type
                 :zf (if (= z-type :zipper) zprint.zutil/zf zprint.sutil/sf))]
+        #_(def coreopt options)
         [(fzprint options 0 input) options]))))
 
 (declare get-docstring-spec)
@@ -203,7 +202,8 @@
           auto-width
             (when (and (not width)
                        (:auto-width? new-options (:auto-width? (get-options))))
-              (let [actual-width (#'table.width/detect-terminal-width)]
+              (let [actual-width #?(:clj (#'table.width/detect-terminal-width)
+                                    :cljs nil)]
                 (when (number? actual-width) {:width actual-width})))
           new-options
             (if auto-width (merge-deep new-options auto-width) new-options)
@@ -218,7 +218,9 @@
                    (str "Global configuration errors: " configure-errors))
                  (when errors (str "Option errors in this call: " errors)))
           actual-options (if (not (empty? combined-errors))
-                           (throw (Exception. combined-errors))
+                           (throw (#?(:clj Exception.
+                                      :cljs js/Error.)
+                                   combined-errors))
                            (config/add-calculated-options
                              (merge-deep updated-map new-options)))]
       (if special-option
@@ -236,9 +238,10 @@
           coll
           (if-let [fn-name (:fn-name actual-options)]
             (if (:docstring? (:spec actual-options))
-              (assoc-in actual-options
-                        [:spec :value]
-                        (get-docstring-spec actual-options fn-name))
+              #?(:clj (assoc-in actual-options
+                                [:spec :value]
+                                (get-docstring-spec actual-options fn-name))
+                 :cljs actual-options)
               actual-options)
             actual-options))))))
 
@@ -268,9 +271,15 @@
 (defn get-fn-source
   "Call source-fn, and if it isn't there throw an exception."
   [fn-name]
-  (or (try (source-fn fn-name) (catch Exception e nil))
-      (throw (Exception. (str "No definition found for a function named: "
-                              fn-name)))))
+  (or
+    (try #?(:clj (source-fn fn-name))
+         (catch #?(:clj Exception
+                   :cljs :default)
+                e
+                nil))
+    (throw (#?(:clj Exception.
+               :cljs js/Error.)
+            (str "No definition found for a function named: " fn-name)))))
 
 ;;
 ;; # User level printing functions
@@ -310,43 +319,43 @@
   [coll & rest]
   (println (apply czprint-str-internal {} coll rest)))
 
-(defmacro zprint-fn-str
-  "Take a fn name, and print it."
-  [fn-name & rest]
-  `(apply zprint-str-internal
-     {:parse-string? true}
-     (get-fn-source '~fn-name)
-     ~@rest
-     []))
+#?(:clj (defmacro zprint-fn-str
+          "Take a fn name, and print it."
+          [fn-name & rest]
+          `(apply zprint-str-internal
+             {:parse-string? true}
+             (get-fn-source '~fn-name)
+             ~@rest
+             [])))
 
-(defmacro czprint-fn-str
-  "Take a fn name, and print it with syntax highlighting."
-  [fn-name & rest]
-  `(apply czprint-str-internal
-     {:parse-string? true}
-     (get-fn-source '~fn-name)
-     ~@rest
-     []))
+#?(:clj (defmacro czprint-fn-str
+          "Take a fn name, and print it with syntax highlighting."
+          [fn-name & rest]
+          `(apply czprint-str-internal
+             {:parse-string? true}
+             (get-fn-source '~fn-name)
+             ~@rest
+             [])))
 
-(defmacro zprint-fn
-  "Take a fn name, and print it."
-  [fn-name & rest]
-  `(println
-     (apply zprint-str-internal
-       {:parse-string? true}
-       (get-fn-source '~fn-name)
-       ~@rest
-       [])))
+#?(:clj (defmacro zprint-fn
+          "Take a fn name, and print it."
+          [fn-name & rest]
+          `(println
+             (apply zprint-str-internal
+               {:parse-string? true}
+               (get-fn-source '~fn-name)
+               ~@rest
+               []))))
 
-(defmacro czprint-fn
-  "Take a fn name, and print it with syntax highlighting."
-  [fn-name & rest]
-  `(println
-     (apply czprint-str-internal
-       {:parse-string? true, :fn-name '~fn-name}
-       (get-fn-source '~fn-name)
-       ~@rest
-       [])))
+#?(:clj (defmacro czprint-fn
+          "Take a fn name, and print it with syntax highlighting."
+          [fn-name & rest]
+          `(println
+             (apply czprint-str-internal
+               {:parse-string? true, :fn-name '~fn-name}
+               (get-fn-source '~fn-name)
+               ~@rest
+               []))))
 
 ;;
 ;; # File operations
@@ -366,13 +375,14 @@
     (when-let [possible-options (second comment-split)]
       (try
         [(read-string possible-options) nil]
-        (catch Exception
-               e
-               [nil
-                (str "Unable to create zprint options map from: '"
-                       possible-options
-                     "' found in !zprint directive number: " zprint-num
-                     " because: " e)])))))
+        (catch
+          #?(:clj Exception
+             :cljs :default)
+          e
+          [nil
+           (str "Unable to create zprint options map from: '" possible-options
+                "' found in !zprint directive number: " zprint-num
+                " because: " e)])))))
 
 ;;
 ;; ## Process the sequences of forms in a file
@@ -391,10 +401,10 @@
   for what is actually done with the various :format values."
   [file-name [next-options _ zprint-num] form]
   (let [comment? (zcomment? form)
-        whitespace? (z/whitespace? form)
+        whitespace? (whitespace? form)
         [new-options error-str] (when comment?
                                   (get-options-from-comment (inc zprint-num)
-                                                            (z/string form)))
+                                                            (string form)))
         ; If this was a ;!zprint line, don't wrap it
         internal-options (if new-options
                            {:comment {:wrap? false}, :zipper? true}
@@ -404,7 +414,7 @@
           (if (or (= :off (:format (get-options)))
                   (and (not (or comment? whitespace?))
                        (= :skip (:format next-options))))
-            (z/string form)
+            (string form)
             (zprint-str-internal
               (if (or comment? whitespace? (empty? next-options))
                 internal-options
@@ -477,27 +487,30 @@
 ;; ## Process an entire file
 ;;
 
-(defn zprint-file
-  "Take an input filename and an output filename, and do a zprint
+#?(:clj
+     (defn zprint-file
+       "Take an input filename and an output filename, and do a zprint
   on every form in the input file and write it to the output file.
   Note that this uses whatever comes from (get-options).  If you
   want to have each file be separate, you should call (configure-all!)
   before calling this function."
-  [infile file-name outfile]
-  (let [wholefile (slurp infile)
-        lines (clojure.string/split wholefile #"\n")
-        lines (if (:expand? (:tab (get-options)))
-                (map (partial expand-tabs (:size (:tab (get-options)))) lines)
-                lines)
-        filestring (clojure.string/join "\n" lines)
-        ; If file ended with a \newline, make sure it still does
-        filestring
-          (if (= (last wholefile) \newline) (str filestring "\n") filestring)
-        forms (z/edn* (p/parse-string-all filestring))
-        form-seq (zmap-all identity forms)
-        #_(def fileform form-seq)
-        outputstr (process-file-forms file-name form-seq)]
-    (spit outfile outputstr)))
+       [infile file-name outfile]
+       (let [wholefile (slurp infile)
+             lines (clojure.string/split wholefile #"\n")
+             lines (if (:expand? (:tab (get-options)))
+                     (map (partial expand-tabs (:size (:tab (get-options))))
+                       lines)
+                     lines)
+             filestring (clojure.string/join "\n" lines)
+             ; If file ended with a \newline, make sure it still does
+             filestring (if (= (last wholefile) \newline)
+                          (str filestring "\n")
+                          filestring)
+             forms (edn* (p/parse-string-all filestring))
+             form-seq (zmap-all identity forms)
+             #_(def fileform form-seq)
+             outputstr (process-file-forms file-name form-seq)]
+         (spit outfile outputstr))))
 
 ;;
 ;; # Process specs to go into a doc-string
@@ -519,23 +532,25 @@
             (apply str (interpose (str "\n" (blanks total-indent)) spec-no-nl))]
       (str (blanks indent) key-str spec-shift-right))))
 
-(defn get-docstring-spec
-  "Given a function name (which, if used directly, needs to be quoted)
+#?(:clj
+     (defn get-docstring-spec
+       "Given a function name (which, if used directly, needs to be quoted)
   return a string which is contains the spec information that could go
   in the doc string."
-  [{:keys [width rightcnt dbg?], {:keys [indent]} :list, :as options} fn-name]
-  (let [{n :ns, nm :name, :as m} (meta (resolve fn-name))
-        get-spec-fn (resolve 'clojure.spec/get-spec)
-        describe-fn (resolve 'clojure.spec/describe)]
-    (when (and get-spec-fn describe-fn)
-      (when-let [fn-spec (get-spec-fn (symbol (str (ns-name n)) (name nm)))]
-        (apply str
-          "\n\n" (blanks indent)
-          "Spec:\n" (interpose "\n"
-                      (remove nil?
-                        (map (partial format-spec
-                                      options
-                                      describe-fn
-                                      fn-spec
-                                      (+ indent indent))
-                          [:args :ret :fn]))))))))
+       [{:keys [width rightcnt], {:keys [indent]} :list, :as options} fn-name]
+       (let [{n :ns, nm :name, :as m} (meta (resolve fn-name))
+             get-spec-fn (resolve 'clojure.spec/get-spec)
+             describe-fn (resolve 'clojure.spec/describe)]
+         (when (and get-spec-fn describe-fn)
+           (when-let [fn-spec (get-spec-fn (symbol (str (ns-name n))
+                                                   (name nm)))]
+             (apply str
+               "\n\n" (blanks indent)
+               "Spec:\n" (interpose "\n"
+                           (remove nil?
+                             (map (partial format-spec
+                                           options
+                                           describe-fn
+                                           fn-spec
+                                           (+ indent indent))
+                               [:args :ret :fn])))))))))
