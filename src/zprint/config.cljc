@@ -1,15 +1,14 @@
 (ns
   zprint.config
-  #?@(:cljs [[:refer-clojure :exclude [Inst]]])
-  #?@(:cljs [[:require-macros [schema.core :refer [defschema]]]])
-  #?@(:clj [[:refer-clojure :exclude [read-string]]])
+  #?(:cljs [:require-macros [schema.core :refer [defschema]]])
+  #?(:clj [:refer-clojure :exclude [read-string]])
   (:require
    clojure.string
    [zprint.sutil]
    [zprint.zprint :refer [merge-deep]]
    [clojure.data :as d]
-   #?@(:clj [[clojure.edn :refer [read-string]]]
-       :cljs [[cljs.reader :refer [read-string]]])
+   #?(:clj [clojure.edn :refer [read-string]]
+      :cljs [cljs.reader :refer [read-string]])
    [schema.core :as s]
    #?@(:clj [[schema.core :refer [defschema]]
              [cprop.source :as cs :refer

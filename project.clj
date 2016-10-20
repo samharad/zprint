@@ -1,4 +1,4 @@
-(defproject zprintcljc "0.1.15"
+(defproject zprintcljc "0.1.18"
   :description "Pretty print zippers and s-expressions"
   :url "https://github.com/kkinnear/zprint"
   :license {:name "MIT License"
