@@ -1,4 +1,4 @@
-(defproject zprintcljc "0.1.0"
+(defproject zprintcljc "0.1.10"
   :description "Pretty print zippers and s-expressions"
   :url "https://github.com/kkinnear/zprint"
   :license {:name "MIT License"
@@ -10,11 +10,11 @@
   :profiles {:dev {:dependencies [[expectations "2.0.16"]]}}
   :zprint {:old? false}
   :dependencies [;[org.clojure/clojure "1.9.0-alpha13"]
-                 ;[org.clojure/clojure "1.8.0"]
+                 [org.clojure/clojure "1.8.0"]
                  [rewrite-cljs "0.4.3"]
-                 ;[rewrite-clj "0.4.13" :exclusions [[com.cemerick/austin]]]
-		 ;[table "0.4.0" :exclusions [[org.clojure/clojure]]]
+                 [rewrite-clj "0.4.13" :exclusions [[com.cemerick/austin]]]
+		 [table "0.4.0" :exclusions [[org.clojure/clojure]]]
 		 [trptcolin/versioneer "0.1.0"]
-		 ;[prismatic/schema "1.0.5"]
-		 ;[cprop "0.1.6"]
+		 [prismatic/schema "1.0.5"]
+		 [cprop "0.1.6"]
 		 ])

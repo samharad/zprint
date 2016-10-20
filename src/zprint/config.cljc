@@ -1,21 +1,20 @@
 (ns
   zprint.config
+  #?@(:cljs [[:require-macros [schema.core :refer [defschema]]]])
   #?@(:clj [[:refer-clojure :exclude [read-string]]])
   (:require
    clojure.string
    [zprint.sutil]
    [zprint.zprint :refer [merge-deep]]
-   #?@(:clj [[trptcolin.versioneer.core :as version]
-             [table.width]])
    [clojure.data :as d]
    #?@(:clj [[clojure.edn :refer [read-string]]]
        :cljs [[cljs.reader :refer [read-string]]])
-   #?@(:clj [[schema.core :as s] 
+   [schema.core :as s]
+   #?@(:clj [[schema.core :refer [defschema]]
              [cprop.source :as cs :refer
-	        [from-file from-resource from-system-props from-env 
-		 read-system-env read-system-props merge*]] 
-             [trptcolin.versioneer.core :as version]
-             [table.width]]))
+              [from-file from-resource from-system-props from-env
+               read-system-env read-system-props merge*]]
+             [trptcolin.versioneer.core :as version] [table.width]]))
   #?@(:clj [(:import (java.io InputStreamReader FileReader BufferedReader))]))
 
 ;;
@@ -33,8 +32,7 @@
   "Return version of this program."
   []
   (str "zprint-"
-       #?(:clj (version/get-version "zprint" "zprint")
-          :cljs "0.1.0")))
+       #?(:clj (version/get-version "zprint" "zprint"), :cljs "0.1.1")))
 
 ;;
 ;; # External Configuration
@@ -619,8 +617,7 @@
                                                (get-options)
                                                new-options)]
      (if error-vec
-       (throw (#?(:clj Exception.
-                  :cljs js/Error.)
+       (throw (#?(:clj Exception., :cljs js/Error.)
                (apply str "set-options! found these errors: " error-vec)))
        (do (reset-options! updated-map new-doc-map) updated-map))))
   ([new-options]
@@ -633,205 +630,202 @@
 ;; # Schema for Validation
 ;;
 
-#?(:clj
-     (do
-       (s/defschema
-         color-schema
-         "An enum of the possible colors"
-         (s/enum :green :purple :magenta :yellow :red :cyan :black :blue))
-       (s/defschema format-schema
-                    "An enum of the possible format options"
-                    (s/enum :on :off :next :skip))
-       (s/defschema
-         fn-type
-         "An enum of the possible function types"
-         (s/enum :binding :arg1
-                 :arg1-body :arg1-pair-body
-                 :arg1-pair :pair
-                 :hang :extend
-                 :arg1-extend-body :arg1-extend
-                 :fn :arg1->
-                 :arg2 :arg2-pair
-                 :none :none-body))
-       ;;
-       ;; There is no schema for possible styles, because people
-       ;; can define their own.  There is special code to check to
-       ;; see if a style specification matches one of the defined
-       ;; styles, and if it doesn't, it is dealt with there.
-       ;;
-       (s/defschema boolean-schema
-                    "Our version of boolen, which is true, false, and nil"
-                    (s/conditional nil? s/Any :else s/Bool))
-       (s/defschema
-         boolean-schema-or-string
-         "Our version of boolen, which is true, false, and nil or string"
-         (s/conditional string? s/Any :else boolean-schema))
-       (s/defschema
-         color-map
-         {(s/optional-key :paren) color-schema,
-          (s/optional-key :bracket) color-schema,
-          (s/optional-key :brace) color-schema,
-          (s/optional-key :hash-brace) color-schema,
-          (s/optional-key :hash-paren) color-schema,
-          (s/optional-key :comment) color-schema,
-          (s/optional-key :fn) color-schema,
-          (s/optional-key :user-fn) color-schema,
-          (s/optional-key :string) color-schema,
-          (s/optional-key :keyword) color-schema,
-          (s/optional-key :number) color-schema,
-          (s/optional-key :uneval) color-schema,
-          (s/optional-key :nil) color-schema,
-          (s/optional-key :quote) color-schema,
-          (s/optional-key :none) color-schema})
-       (s/defschema
-         zprint-options-schema
-         "Use this to validate input, so ensure that people don't forget
+(defschema color-schema
+           "An enum of the possible colors"
+           (s/enum :green :purple :magenta :yellow :red :cyan :black :blue))
+
+(defschema format-schema
+           "An enum of the possible format options"
+           (s/enum :on :off :next :skip))
+
+(defschema
+  fn-type
+  "An enum of the possible function types"
+  (s/enum :binding :arg1
+          :arg1-body :arg1-pair-body
+          :arg1-pair :pair
+          :hang :extend
+          :arg1-extend-body :arg1-extend
+          :fn :arg1->
+          :arg2 :arg2-pair
+          :none :none-body))
+
+;;
+;; There is no schema for possible styles, because people
+;; can define their own.  There is special code to check to
+;; see if a style specification matches one of the defined
+;; styles, and if it doesn't, it is dealt with there.
+;;
+
+(defschema boolean-schema
+           "Our version of boolen, which is true, false, and nil"
+           (s/conditional nil? s/Any :else s/Bool))
+
+(defschema boolean-schema-or-string
+           "Our version of boolen, which is true, false, and nil or string"
+           (s/conditional string? s/Any :else boolean-schema))
+
+(defschema
+  color-map
+  {(s/optional-key :paren) color-schema,
+   (s/optional-key :bracket) color-schema,
+   (s/optional-key :brace) color-schema,
+   (s/optional-key :hash-brace) color-schema,
+   (s/optional-key :hash-paren) color-schema,
+   (s/optional-key :comment) color-schema,
+   (s/optional-key :fn) color-schema,
+   (s/optional-key :user-fn) color-schema,
+   (s/optional-key :string) color-schema,
+   (s/optional-key :keyword) color-schema,
+   (s/optional-key :number) color-schema,
+   (s/optional-key :uneval) color-schema,
+   (s/optional-key :nil) color-schema,
+   (s/optional-key :quote) color-schema,
+   (s/optional-key :none) color-schema})
+
+(defschema
+  zprint-options-schema
+  "Use this to validate input, so ensure that people don't forget
   things like the ? on the end of booleans and such."
-         {(s/optional-key :configured?) boolean-schema,
-          (s/optional-key :style) s/Keyword,
-          (s/optional-key :width) s/Num,
-          (s/optional-key :max-depth) s/Num,
-          (s/optional-key :max-length) s/Num,
-          (s/optional-key :parse-string?) boolean-schema,
-          (s/optional-key :zipper?) boolean-schema,
-          (s/optional-key :old?) boolean-schema,
-          (s/optional-key :format) format-schema,
-          (s/optional-key :fn-name) s/Any,
-          (s/optional-key :auto-width?) boolean-schema,
-          (s/optional-key :force-sexpr?) boolean-schema,
-          (s/optional-key :spec) {(s/optional-key :value) s/Any,
-                                  (s/optional-key :docstring?) boolean-schema},
-          (s/optional-key :tuning) {(s/optional-key :hang-flow) s/Num,
-                                    (s/optional-key :hang-type-flow) s/Num,
-                                    (s/optional-key :hang-flow-limit) s/Num,
-                                    (s/optional-key :general-hang-adjust) s/Num,
-                                    (s/optional-key :hang-if-equal-flow?)
-                                      boolean-schema},
-          (s/optional-key :color-map) color-map,
-          (s/optional-key :uneval) {(s/optional-key :color-map) color-map},
-          (s/optional-key :fn-map) {s/Str fn-type},
-          (s/optional-key :user-fn-map) {s/Str fn-type},
-          (s/optional-key :vector) {(s/optional-key :indent) s/Num,
-                                    (s/optional-key :wrap?) boolean-schema,
-                                    (s/optional-key :wrap-coll?) boolean-schema,
-                                    (s/optional-key :wrap-after-multi?)
-                                      boolean-schema},
-          (s/optional-key :set) {(s/optional-key :indent) s/Num,
-                                 (s/optional-key :wrap?) boolean-schema,
-                                 (s/optional-key :wrap-coll?) boolean-schema,
-                                 (s/optional-key :wrap-after-multi?)
-                                   boolean-schema},
-          (s/optional-key :object) {(s/optional-key :indent) s/Num,
-                                    (s/optional-key :wrap-coll?) boolean-schema,
-                                    (s/optional-key :wrap-after-multi?)
-                                      boolean-schema},
-          (s/optional-key :list) {(s/optional-key :indent-arg) s/Num,
-                                  (s/optional-key :indent) s/Num,
+  {(s/optional-key :configured?) boolean-schema,
+   (s/optional-key :style) s/Keyword,
+   (s/optional-key :width) s/Num,
+   (s/optional-key :max-depth) s/Num,
+   (s/optional-key :max-length) s/Num,
+   (s/optional-key :parse-string?) boolean-schema,
+   (s/optional-key :zipper?) boolean-schema,
+   (s/optional-key :old?) boolean-schema,
+   (s/optional-key :format) format-schema,
+   (s/optional-key :fn-name) s/Any,
+   (s/optional-key :auto-width?) boolean-schema,
+   (s/optional-key :force-sexpr?) boolean-schema,
+   (s/optional-key :spec) {(s/optional-key :value) s/Any,
+                           (s/optional-key :docstring?) boolean-schema},
+   (s/optional-key :tuning) {(s/optional-key :hang-flow) s/Num,
+                             (s/optional-key :hang-type-flow) s/Num,
+                             (s/optional-key :hang-flow-limit) s/Num,
+                             (s/optional-key :general-hang-adjust) s/Num,
+                             (s/optional-key :hang-if-equal-flow?)
+                               boolean-schema},
+   (s/optional-key :color-map) color-map,
+   (s/optional-key :uneval) {(s/optional-key :color-map) color-map},
+   (s/optional-key :fn-map) {s/Str fn-type},
+   (s/optional-key :user-fn-map) {s/Str fn-type},
+   (s/optional-key :vector) {(s/optional-key :indent) s/Num,
+                             (s/optional-key :wrap?) boolean-schema,
+                             (s/optional-key :wrap-coll?) boolean-schema,
+                             (s/optional-key :wrap-after-multi?)
+                               boolean-schema},
+   (s/optional-key :set) {(s/optional-key :indent) s/Num,
+                          (s/optional-key :wrap?) boolean-schema,
+                          (s/optional-key :wrap-coll?) boolean-schema,
+                          (s/optional-key :wrap-after-multi?) boolean-schema},
+   (s/optional-key :object) {(s/optional-key :indent) s/Num,
+                             (s/optional-key :wrap-coll?) boolean-schema,
+                             (s/optional-key :wrap-after-multi?)
+                               boolean-schema},
+   (s/optional-key :list) {(s/optional-key :indent-arg) s/Num,
+                           (s/optional-key :indent) s/Num,
+                           (s/optional-key :hang?) boolean-schema,
+                           (s/optional-key :pair-hang?) boolean-schema,
+                           (s/optional-key :hang-expand) s/Num,
+                           (s/optional-key :hang-diff) s/Num,
+                           (s/optional-key :hang-size) s/Num,
+                           (s/optional-key :constant-pair?) boolean-schema,
+                           (s/optional-key :constant-pair-min) s/Num},
+   (s/optional-key :pair-fn) {(s/optional-key :indent) s/Num,
+                              (s/optional-key :hang?) boolean-schema,
+                              (s/optional-key :hang-expand) s/Num,
+                              (s/optional-key :hang-size) s/Num,
+                              (s/optional-key :hang-diff) s/Num},
+   (s/optional-key :map) {(s/optional-key :indent) s/Num,
+                          (s/optional-key :hang?) boolean-schema,
+                          (s/optional-key :hang-expand) s/Num,
+                          (s/optional-key :hang-diff) s/Num,
+                          (s/optional-key :hang-adjust) s/Num,
+                          (s/optional-key :sort?) boolean-schema,
+                          (s/optional-key :sort-in-code?) boolean-schema,
+                          (s/optional-key :comma?) boolean-schema,
+                          (s/optional-key :dbg-local?) boolean-schema,
+                          (s/optional-key :key-order) [s/Any],
+                          (s/optional-key :key-ignore) [s/Any],
+                          (s/optional-key :key-ignore-silent) [s/Any],
+                          (s/optional-key :force-nl?) boolean-schema,
+                          (s/optional-key :justify?) boolean-schema,
+                          (s/optional-key :justify-hang)
+                            {(s/optional-key :hang?) boolean-schema,
+                             (s/optional-key :hang-expand) s/Num,
+                             (s/optional-key :hang-diff) s/Num},
+                          (s/optional-key :justify-tuning)
+                            {(s/optional-key :hang-flow) s/Num,
+                             (s/optional-key :hang-type-flow) s/Num,
+                             (s/optional-key :hang-flow-limit) s/Num,
+                             (s/optional-key :general-hang-adjust) s/Num}},
+   (s/optional-key :extend) {(s/optional-key :indent) s/Num,
+                             (s/optional-key :hang?) boolean-schema,
+                             (s/optional-key :hang-expand) s/Num,
+                             (s/optional-key :hang-diff) s/Num,
+                             (s/optional-key :force-nl?) boolean-schema},
+   (s/optional-key :reader-cond) {(s/optional-key :indent) s/Num,
                                   (s/optional-key :hang?) boolean-schema,
-                                  (s/optional-key :pair-hang?) boolean-schema,
                                   (s/optional-key :hang-expand) s/Num,
                                   (s/optional-key :hang-diff) s/Num,
-                                  (s/optional-key :hang-size) s/Num,
-                                  (s/optional-key :constant-pair?)
+                                  (s/optional-key :sort?) boolean-schema,
+                                  (s/optional-key :sort-in-code?)
                                     boolean-schema,
-                                  (s/optional-key :constant-pair-min) s/Num},
-          (s/optional-key :pair-fn) {(s/optional-key :indent) s/Num,
-                                     (s/optional-key :hang?) boolean-schema,
-                                     (s/optional-key :hang-expand) s/Num,
-                                     (s/optional-key :hang-size) s/Num,
-                                     (s/optional-key :hang-diff) s/Num},
-          (s/optional-key :map) {(s/optional-key :indent) s/Num,
-                                 (s/optional-key :hang?) boolean-schema,
+                                  (s/optional-key :comma?) boolean-schema,
+                                  (s/optional-key :key-order) [s/Any]},
+   (s/optional-key :binding) {(s/optional-key :indent) s/Num,
+                              (s/optional-key :hang?) boolean-schema,
+                              (s/optional-key :hang-expand) s/Num,
+                              (s/optional-key :hang-diff) s/Num,
+                              (s/optional-key :justify?) boolean-schema,
+                              (s/optional-key :justify-hang)
+                                {(s/optional-key :hang?) boolean-schema,
                                  (s/optional-key :hang-expand) s/Num,
-                                 (s/optional-key :hang-diff) s/Num,
-                                 (s/optional-key :hang-adjust) s/Num,
-                                 (s/optional-key :sort?) boolean-schema,
-                                 (s/optional-key :sort-in-code?) boolean-schema,
-                                 (s/optional-key :comma?) boolean-schema,
-                                 (s/optional-key :dbg-local?) boolean-schema,
-                                 (s/optional-key :key-order) [s/Any],
-                                 (s/optional-key :key-ignore) [s/Any],
-                                 (s/optional-key :key-ignore-silent) [s/Any],
-                                 (s/optional-key :force-nl?) boolean-schema,
-                                 (s/optional-key :justify?) boolean-schema,
-                                 (s/optional-key :justify-hang)
-                                   {(s/optional-key :hang?) boolean-schema,
-                                    (s/optional-key :hang-expand) s/Num,
-                                    (s/optional-key :hang-diff) s/Num},
-                                 (s/optional-key :justify-tuning)
-                                   {(s/optional-key :hang-flow) s/Num,
-                                    (s/optional-key :hang-type-flow) s/Num,
-                                    (s/optional-key :hang-flow-limit) s/Num,
-                                    (s/optional-key :general-hang-adjust)
-                                      s/Num}},
-          (s/optional-key :extend) {(s/optional-key :indent) s/Num,
-                                    (s/optional-key :hang?) boolean-schema,
-                                    (s/optional-key :hang-expand) s/Num,
-                                    (s/optional-key :hang-diff) s/Num,
-                                    (s/optional-key :force-nl?) boolean-schema},
-          (s/optional-key :reader-cond)
-            {(s/optional-key :indent) s/Num,
-             (s/optional-key :hang?) boolean-schema,
-             (s/optional-key :hang-expand) s/Num,
-             (s/optional-key :hang-diff) s/Num,
-             (s/optional-key :sort?) boolean-schema,
-             (s/optional-key :sort-in-code?) boolean-schema,
-             (s/optional-key :comma?) boolean-schema,
-             (s/optional-key :key-order) [s/Any]},
-          (s/optional-key :binding) {(s/optional-key :indent) s/Num,
-                                     (s/optional-key :hang?) boolean-schema,
-                                     (s/optional-key :hang-expand) s/Num,
-                                     (s/optional-key :hang-diff) s/Num,
-                                     (s/optional-key :justify?) boolean-schema,
-                                     (s/optional-key :justify-hang)
-                                       {(s/optional-key :hang?) boolean-schema,
-                                        (s/optional-key :hang-expand) s/Num,
-                                        (s/optional-key :hang-diff) s/Num},
-                                     (s/optional-key :justify-tuning)
-                                       {(s/optional-key :hang-flow) s/Num,
-                                        (s/optional-key :hang-type-flow) s/Num,
-                                        (s/optional-key :hang-flow-limit) s/Num,
-                                        (s/optional-key :general-hang-adjust)
-                                          s/Num}},
-          (s/optional-key :pair) {(s/optional-key :indent) s/Num,
-                                  (s/optional-key :hang?) boolean-schema,
-                                  (s/optional-key :hang-expand) s/Num,
-                                  (s/optional-key :hang-diff) s/Num,
-                                  (s/optional-key :force-nl?) boolean-schema,
-                                  (s/optional-key :justify?) boolean-schema,
-                                  (s/optional-key :justify-hang)
-                                    {(s/optional-key :hang?) boolean-schema,
-                                     (s/optional-key :hang-expand) s/Num,
-                                     (s/optional-key :hang-diff) s/Num},
-                                  (s/optional-key :justify-tuning)
-                                    {(s/optional-key :hang-flow) s/Num,
-                                     (s/optional-key :hang-type-flow) s/Num,
-                                     (s/optional-key :hang-flow-limit) s/Num,
-                                     (s/optional-key :general-hang-adjust)
-                                       s/Num}},
-          (s/optional-key :record)
-            {(s/optional-key :record-type?) boolean-schema,
-             (s/optional-key :hang?) boolean-schema,
-             (s/optional-key :to-string?) boolean-schema},
-          (s/optional-key :array) {(s/optional-key :hex?)
-                                     boolean-schema-or-string,
-                                   (s/optional-key :object?) boolean-schema,
-                                   (s/optional-key :indent) s/Num,
-                                   (s/optional-key :wrap?) boolean-schema},
-          (s/optional-key :atom) {(s/optional-key :object?) boolean-schema},
-          (s/optional-key :fn-obj) {(s/optional-key :object?) boolean-schema},
-          (s/optional-key :future) {(s/optional-key :object?) boolean-schema},
-          (s/optional-key :promise) {(s/optional-key :object?) boolean-schema},
-          (s/optional-key :delay) {(s/optional-key :object?) boolean-schema},
-          (s/optional-key :agent) {(s/optional-key :object?) boolean-schema},
-          (s/optional-key :tab) {(s/optional-key :expand?) boolean-schema,
-                                 (s/optional-key :size) s/Num},
-          (s/optional-key :comment) {(s/optional-key :count?) boolean-schema,
-                                     (s/optional-key :wrap?) boolean-schema},
-          (s/optional-key :dbg?) boolean-schema,
-          (s/optional-key :dbg-print?) boolean-schema,
-          (s/optional-key :dbg-ge) s/Any,
-          (s/optional-key :do-in-hang?) boolean-schema})))
+                                 (s/optional-key :hang-diff) s/Num},
+                              (s/optional-key :justify-tuning)
+                                {(s/optional-key :hang-flow) s/Num,
+                                 (s/optional-key :hang-type-flow) s/Num,
+                                 (s/optional-key :hang-flow-limit) s/Num,
+                                 (s/optional-key :general-hang-adjust) s/Num}},
+   (s/optional-key :pair) {(s/optional-key :indent) s/Num,
+                           (s/optional-key :hang?) boolean-schema,
+                           (s/optional-key :hang-expand) s/Num,
+                           (s/optional-key :hang-diff) s/Num,
+                           (s/optional-key :force-nl?) boolean-schema,
+                           (s/optional-key :justify?) boolean-schema,
+                           (s/optional-key :justify-hang)
+                             {(s/optional-key :hang?) boolean-schema,
+                              (s/optional-key :hang-expand) s/Num,
+                              (s/optional-key :hang-diff) s/Num},
+                           (s/optional-key :justify-tuning)
+                             {(s/optional-key :hang-flow) s/Num,
+                              (s/optional-key :hang-type-flow) s/Num,
+                              (s/optional-key :hang-flow-limit) s/Num,
+                              (s/optional-key :general-hang-adjust) s/Num}},
+   (s/optional-key :record) {(s/optional-key :record-type?) boolean-schema,
+                             (s/optional-key :hang?) boolean-schema,
+                             (s/optional-key :to-string?) boolean-schema},
+   (s/optional-key :array) {(s/optional-key :hex?) boolean-schema-or-string,
+                            (s/optional-key :object?) boolean-schema,
+                            (s/optional-key :indent) s/Num,
+                            (s/optional-key :wrap?) boolean-schema},
+   (s/optional-key :atom) {(s/optional-key :object?) boolean-schema},
+   (s/optional-key :fn-obj) {(s/optional-key :object?) boolean-schema},
+   (s/optional-key :future) {(s/optional-key :object?) boolean-schema},
+   (s/optional-key :promise) {(s/optional-key :object?) boolean-schema},
+   (s/optional-key :delay) {(s/optional-key :object?) boolean-schema},
+   (s/optional-key :agent) {(s/optional-key :object?) boolean-schema},
+   (s/optional-key :tab) {(s/optional-key :expand?) boolean-schema,
+                          (s/optional-key :size) s/Num},
+   (s/optional-key :comment) {(s/optional-key :count?) boolean-schema,
+                              (s/optional-key :wrap?) boolean-schema},
+   (s/optional-key :dbg?) boolean-schema,
+   (s/optional-key :dbg-print?) boolean-schema,
+   (s/optional-key :dbg-ge) s/Any,
+   (s/optional-key :do-in-hang?) boolean-schema})
+          
 
 ;;
 ;; # Schema Validation Functions
@@ -854,34 +848,33 @@
   source-str is a descriptive phrase which will be included in the errors
   (if any). Returns nil for success, a string with error(s) if not."
   ([options source-str]
-   #?(:clj (when options
-             (empty-to-nil
-               (apply str
-                 (interpose ", "
-                   (remove #(or (nil? %) (empty? %))
-                     (conj
-                       []
-                       (try
-                         #?(:clj (s/validate zprint-options-schema
-                                             (dissoc options :style-map)))
-                         nil
-                         (catch Exception
-                                e
-                                (if source-str
+   (when options
+     (empty-to-nil
+       (apply str
+         (interpose ", "
+           (remove #(or (nil? %) (empty? %))
+             (conj
+               []
+               (try
+                 (s/validate zprint-options-schema (dissoc options :style-map))
+                 nil
+                 (catch #?(:clj Exception, :cljs :default)
+                        e
+                        #?(:clj (if source-str
                                   (str "In " source-str
                                        ", " (:cause (Throwable->map e)))
-                                  (:cause (Throwable->map e)))))
-                       (when (not (constants (get-in options
-                                                     [:map :key-order])))
-                         (str "In " source-str
-                              " :map :key-order were not all constants:"
-                                (get-in options [:map :key-order])))
-                       (when (not (constants
-                                    (get-in options [:reader-cond :key-order])))
-                         (str " In " source-str
-                              " :reader-cond :key-order were not all constants:"
-                                (get-in options [:reader-cond :key-order])))
-                       (validate-style-map options)))))))))
+                                  (:cause (Throwable->map e)))
+                           :cljs (str (.-message e)))))
+               (when (not (constants (get-in options [:map :key-order])))
+                 (str "In " source-str
+                      " :map :key-order were not all constants:"
+                        (get-in options [:map :key-order])))
+               (when (not (constants (get-in options
+                                             [:reader-cond :key-order])))
+                 (str " In " source-str
+                      " :reader-cond :key-order were not all constants:"
+                        (get-in options [:reader-cond :key-order])))
+               (validate-style-map options))))))))
   ([options] (validate-options options nil)))
 
 ;;
@@ -955,15 +948,13 @@
                (let [lines (file-line-seq-file filename)
                      opts-file (clojure.edn/read-string (apply str lines))]
                  [opts-file nil filename])
-               (catch
-                 #?(:clj Exception
-                    :cljs :default)
-                 e
-                 (if optional?
-                   nil
-                   [nil
-                    (str "Unable to read configuration from file " filename
-                         " because " e) filename]))))
+               (catch #?(:clj Exception, :cljs :default)
+                      e
+                      (if optional?
+                        nil
+                        [nil
+                         (str "Unable to read configuration from file " filename
+                              " because " e) filename]))))
       :cljs nil))
   ([filename] (get-config-from-file filename nil)))
                    
@@ -974,8 +965,7 @@
   (when map-string
     (try
       (let [opts-map (read-string map-string)] [opts-map nil])
-      (catch #?(:clj Exception
-                :cljs :default)
+      (catch #?(:clj Exception, :cljs :default)
              e
              [nil
               (str "Unable to read configuration from map" map-string
@@ -1079,10 +1069,8 @@
         ;
         ; $HOME/.zprintrc
         ;
-        home #?(:clj (System/getenv "HOME")
-                :cljs nil)
-        file-separator #?(:clj (System/getProperty "file.separator")
-                          :cljs nil)
+        home #?(:clj (System/getenv "HOME"), :cljs nil)
+        file-separator #?(:clj (System/getProperty "file.separator"), :cljs nil)
         zprintrc-file (str home file-separator zprintrc)
         [opts-rcfile errors-rcfile rc-filename]
           (when (and home file-separator)
@@ -1095,8 +1083,7 @@
         ;
         ; environment variables -- requires zprint on front
         ;
-        env-map #?(:clj (cs/read-system-env)
-                   :cljs nil)
+        env-map #?(:clj (cs/read-system-env), :cljs nil)
         env-and-default-map (merge-existing {:zprint default-map} env-map)
         new-env-map (diff-map default-map (:zprint env-and-default-map))
         new-env-map (update-fn-map new-env-map env-map)
@@ -1109,8 +1096,7 @@
         ;
         ; System properties -- requires zprint on front
         ;
-        prop-map #?(:clj (cs/read-system-props)
-                    :cljs nil)
+        prop-map #?(:clj (cs/read-system-props), :cljs nil)
         prop-and-default-map (merge-existing {:zprint default-map} prop-map)
         new-prop-map (diff-map default-map (:zprint prop-and-default-map))
         new-prop-map (update-fn-map new-prop-map prop-map)
@@ -1123,8 +1109,7 @@
         ;
         ; --config FILE
         ;
-        config-filename #?(:clj (:config cli-opts)
-                           :cljs nil)
+        config-filename #?(:clj (:config cli-opts), :cljs nil)
         [opts-configfile errors-configfile config-filename]
           (when config-filename (get-config-from-file zprintrc-file))
         [updated-map new-doc-map config-errors]
