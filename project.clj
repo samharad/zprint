@@ -1,4 +1,4 @@
-(defproject zprintcljc "0.1.10"
+(defproject zprintcljc "0.1.15"
   :description "Pretty print zippers and s-expressions"
   :url "https://github.com/kkinnear/zprint"
   :license {:name "MIT License"
@@ -15,6 +15,6 @@
                  [rewrite-clj "0.4.13" :exclusions [[com.cemerick/austin]]]
 		 [table "0.4.0" :exclusions [[org.clojure/clojure]]]
 		 [trptcolin/versioneer "0.1.0"]
-		 [prismatic/schema "1.0.5"]
+		 [prismatic/schema "1.1.3"]
 		 [cprop "0.1.6"]
 		 ])

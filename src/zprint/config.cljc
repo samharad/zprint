@@ -1,5 +1,6 @@
 (ns
   zprint.config
+  #?@(:cljs [[:refer-clojure :exclude [Inst]]])
   #?@(:cljs [[:require-macros [schema.core :refer [defschema]]]])
   #?@(:clj [[:refer-clojure :exclude [read-string]]])
   (:require
