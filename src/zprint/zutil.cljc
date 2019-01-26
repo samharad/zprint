@@ -93,6 +93,15 @@
   #?(:clj z/whitespace?
      :cljs zw/whitespace?))
 
+#_(defn whitespace?
+  [zloc] (or (= (tag/zloc) :whitespace) (= (tag-zloc) :comma)))
+
+#_(defn skip-whitespace
+  "Perform the given movement (default: `z/right`) until a non-whitespace/
+   non-comment node is encountered."
+  ([zloc] (skip-whitespace z/right zloc))
+  ([f zloc] (skip f whitespace? zloc)))
+
 (def whitespace-or-comment?
   #?(:clj z/whitespace-or-comment?
      :cljs zw/whitespace-or-comment?))
@@ -156,7 +165,7 @@
 (defn zcomment?
   "Returns true if this is a comment."
   [zloc]
-  (when zloc (= (tag zloc) :comment)))
+  (when zloc (or (= (tag zloc) :comment) (= (tag zloc) :newline))))
 
 (defn znewline?
   "Returns true if this is a newline."
@@ -259,9 +268,9 @@
     (when (not (nil? nloc))
       (if (zthing? nloc) i (recur (zrightnws nloc) (inc i))))))
 
-(defn zmap-w-nl
+(defn zmap
   "Return a vector containing the return of applying a function to 
-  every non-whitespace zloc inside of zloc."
+  every non-whitespace zloc inside of zloc, including newlines."
   [zfn zloc]
   (loop [nloc (down* zloc)
          out []]
@@ -274,7 +283,7 @@
                (conj out result)
                out)))))
 
-(defn zmap
+(defn zmap-orig
   "Return a vector containing the return of applying a function to 
   every non-whitespace zloc inside of zloc."
   [zfn zloc]
