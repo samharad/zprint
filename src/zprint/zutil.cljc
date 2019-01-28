@@ -16,6 +16,19 @@
 ;;
 
 ;;
+;; ### TEMPORARY PROTOTYPE CODE -- REMOVE THIS
+;;
+
+(def nl-to-comment? (atom false))
+(defn set-nl-to-comment!
+  []
+  (reset! nl-to-comment? true))
+(defn clear-nl-to-comment!
+  []
+  (reset! nl-to-comment? false))
+
+
+;;
 ;; Note that both rewrite-clj and rewrite-cljs use the following namespaces:
 ;;
 ;; rewrite-clj.parse
@@ -77,28 +90,36 @@
   #?(:clj z/string
      :cljs zb/string))
 
-(def tag
+#_(def tag
   #?(:clj z/tag
      :cljs zb/tag))
+
+(defn tag
+  [zloc]
+  (let [t (z/tag zloc)] (if @nl-to-comment? (if (= t :newline) :comment t) t)))
 
 (def skip
   #?(:clj z/skip
      :cljs zw/skip))
 
-(def skip-whitespace
+#_(def skip-whitespace
   #?(:clj z/skip-whitespace
      :cljs zw/skip-whitespace))
 
-(def whitespace?
+#_(def whitespace?
   #?(:clj z/whitespace?
      :cljs zw/whitespace?))
 
-#_(defn whitespace?
-  [zloc] (or (= (tag/zloc) :whitespace) (= (tag-zloc) :comma)))
+;; FIX THIS
+(defn whitespace?
+  [zloc]
+  (if @nl-to-comment?
+    (or (= (tag zloc) :whitespace) (= (tag zloc) :comma))
+    (or (= (tag zloc) :whitespace)
+        (= (tag zloc) :newline)
+        (= (tag zloc) :comma))))
 
-#_(defn skip-whitespace
-  "Perform the given movement (default: `z/right`) until a non-whitespace/
-   non-comment node is encountered."
+(defn skip-whitespace
   ([zloc] (skip-whitespace z/right zloc))
   ([f zloc] (skip f whitespace? zloc)))
 
@@ -165,7 +186,10 @@
 (defn zcomment?
   "Returns true if this is a comment."
   [zloc]
-  (when zloc (or (= (tag zloc) :comment) (= (tag zloc) :newline))))
+  (when zloc
+    (if @nl-to-comment?
+      (or (= (tag zloc) :comment) (= (tag zloc) :newline))
+      (= (tag zloc) :comment))))
 
 (defn znewline?
   "Returns true if this is a newline."
@@ -268,7 +292,7 @@
     (when (not (nil? nloc))
       (if (zthing? nloc) i (recur (zrightnws nloc) (inc i))))))
 
-(defn zmap
+(defn zmap-w-nl
   "Return a vector containing the return of applying a function to 
   every non-whitespace zloc inside of zloc, including newlines."
   [zfn zloc]
@@ -283,7 +307,7 @@
                (conj out result)
                out)))))
 
-(defn zmap-orig
+(defn zmap
   "Return a vector containing the return of applying a function to 
   every non-whitespace zloc inside of zloc."
   [zfn zloc]

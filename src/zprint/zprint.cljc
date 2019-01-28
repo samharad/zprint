@@ -408,6 +408,7 @@
   [options ind style-vec]
   (let [count-comment? (:count? (:comment options))
         ind (if (coll? ind) (first ind) ind)]
+    #_(prn "line-lengths-iter: style-vec:" style-vec)
     (loop [next-vec style-vec
            current-string nil
            line-length ind
@@ -1439,6 +1440,9 @@
   (let [hanging (when (and (not= hindent findent) ((options caller) :hang?))
                   (concat-no-nil [[(str " ") :none :whitespace]]
                                  (fzfn (in-hang options) hindent zloc)))
+	#_(prn "fzprint-hang: first hanging:" (first hanging) (second hanging))
+	hanging (when (not= (nth (second hanging) 2) :comment-inline)
+	            hanging)
         hang-count (or zloc-count (zcount zloc))
         hr-lines (style-lines options (dec hindent) hanging)
         ;flow (fzfn options findent zloc)
@@ -2343,6 +2347,7 @@
          ; flow are equal, though, so we won't do that now.  And this
          ; code comes out.
          ;
+         [flow flow-lines] (zat options flow)
          hang? (and hang?
                     ; This is a key for "don't hang no matter what", it isn't
                     ; about making it prettier. People call this routine with
@@ -2351,6 +2356,12 @@
                     ; This is not the original, below.
                     (or (not hang-avoid)
                         (< (count seq-right) (* (- width hindent) hang-avoid)))
+	            ; If the first thing in the flow is a comment, maybe we
+		    ; shouldn't be hanging anything?
+		    #_(do (prn "fzprint-hang-remaining: first flow:" (first flow))
+		        true)
+		    #_(not= (nth (first (first flow)) 2) :comment)
+		    (not= (nth (first flow) 2) :comment-inline)
                     ;flow-lines
                     ;;TODO make this uneval!!!
                     #_(or (<= (- hindent findent) hang-diff)
@@ -2412,7 +2423,6 @@
          ; to the elements of seq-right, so we go right to the source for this
          ; number now.  That let's us move the interpose calls above this
          ; point.
-         [flow flow-lines] (zat options flow)
          [hanging hanging-lines] (zat options hanging)
          hang-count (count seq-right)
          _ (log-lines options
@@ -3753,7 +3763,7 @@
                           ; long??
                           (if (and (zero? depth) (not trim-comments?))
                             zstr
-                            (clojure.string/replace zstr "\n" ""))
+                            (clojure.string/replace-first zstr "\n" ""))
                         ; Only check for inline comments if we are doing them
                         ; otherwise we get left with :comment-inline element
                         ; types that don't go away
