@@ -2574,6 +2574,7 @@
         ; some of the things found in it above would have to change too!
         options
           (if (vector? fn-style) (merge-deep options (second fn-style)) options)
+	wrap? (:wrap? (options caller))
         fn-style (if (vector? fn-style) (first fn-style) fn-style)
         ; Get indents which might have changed if the options map was
         ; re-written by the function style being a vector.
@@ -2646,11 +2647,14 @@
                "indent-adj:" indent-adj
                "len:" len
                "one-line?:" one-line?
-               "rightcnt:" (:rightcnt options))
+               "rightcnt:" (:rightcnt options)
+	       "wrap?:" wrap?)
         one-line (if (zero? len)
                    :empty
                    (when one-line-ok?
                      (fzprint-one-line options one-line-ind zloc)))]
+    (if wrap?
+      (fzprint-vec* caller l-str r-str options ind zloc)
     (cond
       one-line (if (= one-line :empty)
                  (concat-no-nil l-str-vec r-str-vec)
@@ -2933,7 +2937,7 @@
                                                local-indent
                                                (nthnext (zmap identity zloc) 1)
                                                :force-nl))))
-          r-str-vec))))
+          r-str-vec)))))
 
 (defn fzprint-list
   "Pretty print and focus style a :list element."
