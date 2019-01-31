@@ -3079,7 +3079,7 @@
                                  first-sexpr))))
           #_(prn "new-options:" new-options)
           {{:keys [wrap-coll? wrap? binding? option-fn-first respect-nl? sort?
-                   sort-in-code?]}
+                   sort-in-code? indent]}
              caller,
            :as options}
             (merge-deep options new-options)
@@ -3088,7 +3088,8 @@
           ; so this doesn't really matter, but if in the future they were, this
           ; would help.
           respect-nl? (and respect-nl? (not sort?))
-          new-ind (+ (count l-str) ind)
+          new-ind (+ indent ind)
+ ;         new-ind (+ (count l-str) ind)
           _ (dbg-pr options "fzprint-vec*:" (zstring zloc) "new-ind:" new-ind)
           zloc-seq
             (if respect-nl? (zmap-w-nl identity zloc) (zmap identity zloc))

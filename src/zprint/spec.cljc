@@ -213,7 +213,7 @@
   (only-keys :opt-un [::constant-pair-min ::constant-pair? ::hang-diff
                       ::hang-avoid ::hang-expand ::hang-size ::hang? ::indent
                       ::indent-arg ::pair-hang? ::return-altered-zipper
-		      ::wrap?]))
+                      ::wrap-after-multi? ::wrap-coll? ::wrap?]))
 (s/def ::map
   (only-keys :opt-un [::comma? ::flow? ::force-nl? ::hang-adjust ::hang-diff
                       ::hang-expand ::hang? ::indent ::justify? ::justify-hang
