@@ -56,7 +56,8 @@
   #{:binding :arg1 :arg1-body :arg1-pair-body :arg1-pair :pair :hang :extend
     :arg1-extend :fn :arg1-> :noarg1-body :noarg1 :arg2 :arg2-extend :arg2-pair
     :arg2-fn :none :none-body :arg1-force-nl :gt2-force-nl :gt3-force-nl :flow
-    :flow-body :force-nl-body :force-nl :pair-fn :arg1-mixin :arg2-mixin})
+    :flow-body :force-nl-body :force-nl :pair-fn :arg1-mixin :arg2-mixin
+    :indent})
 (s/def ::format-value #{:on :off :next :skip})
 (s/def ::nilable-number (s/nilable number?))
 (s/def ::vec-or-list-of-keyword (s/coll-of keyword? :kind sequential?))
@@ -119,6 +120,7 @@
 (s/def ::hex? ::boolean)
 (s/def ::indent number?)
 (s/def ::indent-arg ::nilable-number)
+(s/def ::indent-only? ::boolean)
 (s/def ::inline? ::boolean)
 (s/def ::interpose ::boolean-or-string)
 (s/def ::justify? ::boolean)
@@ -212,7 +214,8 @@
 (s/def ::list
   (only-keys :opt-un [::constant-pair-min ::constant-pair? ::hang-diff
                       ::hang-avoid ::hang-expand ::hang-size ::hang? ::indent
-                      ::indent-arg ::pair-hang? ::return-altered-zipper]))
+                      ::indent-arg ::pair-hang? ::return-altered-zipper
+		      ::indent-only?]))
 (s/def ::map
   (only-keys :opt-un [::comma? ::flow? ::force-nl? ::hang-adjust ::hang-diff
                       ::hang-expand ::hang? ::indent ::justify? ::justify-hang

@@ -2450,6 +2450,140 @@
   ([caller options hindent findent zloc fn-style]
    (fzprint-hang-remaining caller options hindent findent zloc fn-style nil)))
 
+; Goal: integrate this with wrap-zmap once we get it working...
+
+(defn indent-zmap
+  "Given the output from fzprint-seq, which is a style-vec in
+  the making without spacing, but with extra [] around the elements,
+  wrap the elements to the right margin, recognizing that both comments
+  and newlines are part of all of this. When we get to the right margin
+  and emit a newline, or when we encounter a newline, indent to indent."
+  [caller
+   {:keys [width rightcnt], {:keys [wrap-after-multi?]} caller, :as options} ind
+   coll-print indent]
+  #_(prn "iz:" coll-print)
+  (dbg options "indent-zmap: ind:" ind "indent:" indent)
+  (let [last-index (dec (count coll-print))
+        rightcnt (fix-rightcnt rightcnt)
+        actual-indent (+ ind indent)]
+    (loop [cur-seq coll-print
+           cur-ind ind
+           index 0
+           previous-newline? false
+           ; transient here slows things down, interestingly enough
+           out []]
+      (if-not cur-seq
+        out
+        (let [this-seq (first cur-seq)]
+          (when this-seq
+            (let [multi? (> (count this-seq) 1)
+                  _ (log-lines options "indent-zmap:" ind this-seq)
+                  #_(dbg options
+                         "indent-zmap: cur-ind:" cur-ind
+                         "this-seq:" this-seq)
+                  [linecnt max-width lines] (style-lines options ind this-seq)
+                  last-width (last lines)
+                  len (- last-width ind)
+                  len (max 0 len)
+                  newline? (= (nth (first this-seq) 2) :newline)
+                  width (if (= index last-index) (- width rightcnt) width)
+                  ; need to check size, and if one line and fits, should fit
+                  fit? (and (not newline?)
+                            (or (zero? index)
+                                (and ;(if multi? (= linecnt 1) true)
+                                     (<= (+ cur-ind len) width))))
+                  new-ind (cond
+                            (or (= (nth (first this-seq) 2) :comment)
+                                (= (nth (first this-seq) 2) :comment-inline))
+                              ; Force a newline by exceeding the width
+                              (inc width)
+                            (and multi? (> linecnt 1) (not wrap-after-multi?))
+                              width
+                            fit? (+ cur-ind len 1)
+                            newline? actual-indent
+                            :else (+ ind len 1))]
+              (dbg options
+                   "------ this-seq:" this-seq
+                   "lines:" lines
+                   "linecnt:" linecnt
+                   "multi?" multi?
+                   "newline?:" newline?
+                   "previous-newline?:" previous-newline?
+                   "linecnt:" linecnt
+                   "max-width:" max-width
+                   "last-width:" last-width
+                   "len:" len
+                   "cur-ind:" cur-ind
+                   "new-ind:" new-ind
+                   "width:" width
+                   "fit?" fit?)
+              ; need to figure out what to do with a comment,
+              ; want to force next line to not fit whether or not
+              ; this line fit.  Comments are already multi-line, and
+              ; it is really not clear what multi? does in this routine
+              (recur
+                (next cur-seq)
+                new-ind
+                (inc index)
+                newline?
+                ; TODO: concat-no-nil fails here, why?
+                (concat out
+                        (if fit?
+                          (if (not (zero? index))
+                            (concat-no-nil [[" " :none :whitespace]] this-seq)
+                            this-seq)
+                          (if newline?
+                            [[(str "\n" (blanks (dec new-ind))) :none :indent]]
+                            (if previous-newline?
+                              (concat-no-nil [[" " :none :indent]] this-seq)
+                              (concat-no-nil [[(str "\n" (blanks actual-indent))
+                                               :none :indent]]
+                                             this-seq)))))))))))))
+
+; TODO: Fix these, they both need a lot of work
+; Do we really need both, or just figure out the hang
+; ones?
+
+(def hang-indent #{:hang :none :none-body})
+
+(def flow-indent
+  #{:binding :arg1 :arg1-body :hang :fn :noarg1-body :noarg1 :arg2 :arg2-fn
+    :arg1-force-nl :gt2-force-nl :gt3-force-nl :flow :flow-body :force-nl-body
+    :force-nl})
+
+(defn fzprint-indent
+  "This function takes a zloc and the ind, which is where we are on the line
+  this point, and assumes that we have new-lines in the zloc.  Of course we
+  have to have all of the white space in the zloc too, since we need to ask
+  some questions about what we are starting with at some point.  We don't
+  add newlines except when we find things are going too long, but otherwise
+  we let the newlines that are in there do their thing.  This routine has
+  to make decisions about the indent, based on the previous fn-type
+  (if any) and the actual spacing in the incoming lines."
+  [caller l-str r-str options ind zloc fn-style arg-1-indent]
+  (let [flow-indent (:indent (caller options))
+        l-str-len (count l-str)
+        actual-ind (+ ind l-str-len)
+        indent (if (and arg-1-indent (hang-indent fn-style))
+                 arg-1-indent
+                 flow-indent)
+        new-ind (+ indent ind)
+        _ (dbg-pr options
+                  "fzprint-indent:" (zstring zloc)
+                  "new-ind:" new-ind
+                  "indent:" indent
+                  "actual-ind:" actual-ind)
+        zloc-seq (zmap identity zloc)
+        coll-print (fzprint-seq options new-ind zloc-seq)
+        _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
+        ; If we got any nils from fzprint-seq and we were in :one-line mode
+        ; then give up -- it didn't fit on one line.
+        coll-print (if-not (contains-nil? coll-print) coll-print)]
+    ; indent needs to adjust for the size of l-str-vec, since actual-ind
+    ; has l-str-vec in it so that indent-zmap knows where we are on the
+    ; line.  Just like fzprint-one-line needs one-line-ind, not ind.
+    (indent-zmap caller options actual-ind coll-print (- indent l-str-len))))
+
 ;;
 ;; # Utilities to modify list printing in various ways
 ;;
@@ -2579,6 +2713,7 @@
         ; re-written by the function style being a vector.
         indent (:indent (options caller))
         indent-arg (:indent-arg (options caller))
+        indent-only? (:indent-only? (options caller))
         ; set indent based on fn-style
         indent (if (body-set fn-style) indent (or indent-arg indent))
         indent (+ indent (dec l-str-len))
@@ -2646,6 +2781,7 @@
                "indent-adj:" indent-adj
                "len:" len
                "one-line?:" one-line?
+               "indent-only?:" indent-only?
                "rightcnt:" (:rightcnt options))
         one-line (if (zero? len)
                    :empty
@@ -2662,6 +2798,16 @@
         (dbg options "fzprint-list*:" fn-str " one-line did not work!!!")
       (dbg options "fzprint-list*: fn-style:" fn-style) nil
       (= len 0) (concat-no-nil l-str-vec r-str-vec)
+      indent-only? (concat-no-nil l-str-vec
+                                  (fzprint-indent caller
+                                                  l-str
+                                                  r-str
+                                                  options
+                                                  ind
+                                                  zloc
+                                                  fn-style
+                                                  arg-1-indent)
+                                  r-str-vec)
       (= len 1) (concat-no-nil l-str-vec
                                (fzprint* roptions one-line-ind (zfirst zloc))
                                r-str-vec)
