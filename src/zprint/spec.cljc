@@ -268,7 +268,8 @@
 (s/def ::user-fn-map ::fn-map-value)
 (s/def ::vector
   (only-keys :opt-un [::indent ::binding? ::respect-nl? ::option-fn-first
-                      ::wrap-after-multi? ::wrap-coll? ::wrap?]))
+                      ::wrap-after-multi? ::wrap-coll? ::wrap?
+		      ::indent-only?]))
 (s/def ::version string?)
 (s/def ::width number?)
 (s/def ::zipper? ::boolean)

@@ -618,7 +618,8 @@
             :respect-nl? false,
             :wrap-after-multi? true,
             :wrap-coll? true,
-            :wrap? true},
+            :wrap? true,
+	    :indent-only? false},
    :width 80,
    :zipper? false})
 

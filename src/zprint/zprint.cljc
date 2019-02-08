@@ -1585,7 +1585,10 @@
                    (concat (take max-length zloc-seq) (list (zdotdotdot)))
                    zloc-seq)
         len (count zloc-seq)]
-    (dbg options "fzprint-seq: (count zloc-seq):" len "max-length:" max-length)
+    (dbg options
+         "fzprint-seq: (count zloc-seq):" len
+         "max-length:" max-length
+         "ind:" ind)
     (cond
       (empty? zloc-seq) nil
       (zero? max-length) [[["#?#" (zcolor-map options :keyword) :element]]]
@@ -2452,12 +2455,46 @@
 
 ; Goal: integrate this with wrap-zmap once we get it working...
 
+(defn indent-fixup
+  "Take a style-vec that was once output from indent-zmap, and fix up
+  all of the :indent elements in it by adding cur-ind to them.  If we
+  find a multiple thing in here, call indent-fixup recursively with the
+  cur-ind that is approprite.  All of the actual indents are correct
+  already -- all we are doing is setting up their base.  There is no
+  attempt to determine if we are exceeding any configured width."
+  [caller options ind svec]
+  (dbg-pr options "indent-fixup: ind:" ind "svec:" svec)
+  (loop [cur-seq svec
+         cur-ind ind
+         out []]
+    (if-not cur-seq
+      out
+      (let [this-seq (first cur-seq)
+            new-seq (if (vector? (first this-seq))
+                      (indent-fixup caller options cur-ind this-seq)
+                      (let [[s color type] this-seq]
+                        (if (= type :indent)
+                          [(str s (blanks ind)) color type]
+                          this-seq)))
+            _ (dbg-pr options
+                      "indent-fixup: cur-ind:" cur-ind
+                      "this-seq:" this-seq
+		      "new-seq:" new-seq)
+            [linecnt max-width lines] (style-lines options cur-ind [new-seq])
+            ; Figure out where we are
+            last-width (last lines)]
+        (dbg-pr options
+                "indent-fixup: last-width:" last-width
+                "new-seq:" new-seq)
+        (recur (next cur-seq) last-width (conj out new-seq))))))
+			   
 (defn indent-zmap
   "Given the output from fzprint-seq, which is a style-vec in
   the making without spacing, but with extra [] around the elements,
   wrap the elements to the right margin, recognizing that both comments
   and newlines are part of all of this. When we get to the right margin
-  and emit a newline, or when we encounter a newline, indent to indent."
+  and emit a newline, or when we encounter a newline, indent to indent.
+  ind must be the actual place we are when we start (to the right of l-str)."
   [caller
    {:keys [width rightcnt], {:keys [wrap-after-multi?]} caller, :as options} ind
    coll-print indent]
@@ -2478,12 +2515,33 @@
           (when this-seq
             (let [multi? (> (count this-seq) 1)
                   _ (log-lines options "indent-zmap:" ind this-seq)
-                  #_(dbg options
-                         "indent-zmap: cur-ind:" cur-ind
-                         "this-seq:" this-seq)
-                  [linecnt max-width lines] (style-lines options ind this-seq)
+                  _ (dbg-pr options
+                            "indent-zmap: cur-ind:" cur-ind
+                            "multi?" multi?
+                            "(count this-seq):" (count this-seq)
+                            "this-seq:" this-seq)
+                  this-seq (if multi?
+                             (indent-fixup caller
+                                           options
+					   ; The got ind when fzprint-seq
+                                           (- cur-ind ind)
+                                           this-seq)
+                             this-seq)
+                  [linecnt max-width lines]
+                    (style-lines options cur-ind this-seq)
+                  ; Figure out where we are
                   last-width (last lines)
+                  ; How can this be right if there are multiple lines?
+                  ; Because we called indent-zmap to get the indents right,
+                  ; and they will be but for the first line, which style-lines
+                  ; fixed because it got the cur-ind..
+                  ; This is the total width of the current line
                   len (- last-width ind)
+                  _ (dbg options
+                         "linecnt:" linecnt
+                         "last-width:" last-width
+                         "len:" len
+                         "type:" (nth (first this-seq) 2))
                   len (max 0 len)
                   newline? (= (nth (first this-seq) 2) :newline)
                   width (if (= index last-index) (- width rightcnt) width)
@@ -2497,11 +2555,18 @@
                                 (= (nth (first this-seq) 2) :comment-inline))
                               ; Force a newline by exceeding the width
                               (inc width)
-                            (and multi? (> linecnt 1) (not wrap-after-multi?))
-                              width
+                           (and multi? (> linecnt 1) (not wrap-after-multi?))
+                             (inc width)
                             fit? (+ cur-ind len 1)
                             newline? actual-indent
-                            :else (+ ind len 1))]
+                            :else (+ ind len 1))
+                  ; Fix up any existing indents to be correct in the current
+                  ; context.
+                  this-seq
+                    (if (and (not multi?) (= (nth (first this-seq) 2) :indent))
+                      [[(str (first (first this-seq)) (blanks len))
+                        (second (first this-seq)) (nth (first this-seq) 2)]]
+                      this-seq)]
               (dbg options
                    "------ this-seq:" this-seq
                    "lines:" lines
@@ -2523,7 +2588,7 @@
               ; it is really not clear what multi? does in this routine
               (recur
                 (next cur-seq)
-                new-ind
+                (if fit? new-ind actual-indent)
                 (inc index)
                 newline?
                 ; TODO: concat-no-nil fails here, why?
@@ -2570,11 +2635,13 @@
         new-ind (+ indent ind)
         _ (dbg-pr options
                   "fzprint-indent:" (zstring zloc)
+                  "ind:" ind
+                  "l-str-len:" (count l-str)
                   "new-ind:" new-ind
                   "indent:" indent
                   "actual-ind:" actual-ind)
         zloc-seq (zmap identity zloc)
-        coll-print (fzprint-seq options new-ind zloc-seq)
+        coll-print (fzprint-seq options actual-ind zloc-seq)
         _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
         ; If we got any nils from fzprint-seq and we were in :one-line mode
         ; then give up -- it didn't fit on one line.
@@ -2582,7 +2649,13 @@
     ; indent needs to adjust for the size of l-str-vec, since actual-ind
     ; has l-str-vec in it so that indent-zmap knows where we are on the
     ; line.  Just like fzprint-one-line needs one-line-ind, not ind.
-    (indent-zmap caller options actual-ind coll-print (- indent l-str-len))))
+    (let [output (indent-zmap caller
+                              options
+                              actual-ind
+                              coll-print
+                              (- indent l-str-len))]
+      (dbg-pr options "fzprint-indent: output:" output)
+      output)))
 
 ;;
 ;; # Utilities to modify list printing in various ways
@@ -2768,21 +2841,21 @@
         l-str-vec [[l-str (zcolor-map options l-str) :left]]
         r-str-vec (rstr-vec options (+ indent ind) zloc r-str)
         _ (dbg options
-               "fzprint-list*:" (zstring zloc)
-               "fn-str" fn-str
-               "fn-style:" fn-style
-               "ind:" ind
-               "indent:" indent
-               "default-indent:" default-indent
-               "one-line-ok?" one-line-ok?
-               "arg-1-coll?" arg-1-coll?
-               "arg-1-indent:" arg-1-indent
-               "l-str:" (str "'" l-str "'")
-               "indent-adj:" indent-adj
-               "len:" len
-               "one-line?:" one-line?
-               "indent-only?:" indent-only?
-               "rightcnt:" (:rightcnt options))
+		 "fzprint-list*:" (zstring zloc)
+		 "fn-str" fn-str
+		 "fn-style:" fn-style
+		 "ind:" ind
+		 "indent:" indent
+		 "default-indent:" default-indent
+		 "one-line-ok?" one-line-ok?
+		 "arg-1-coll?" arg-1-coll?
+		 "arg-1-indent:" arg-1-indent
+		 "l-str:" (str "'" l-str "'")
+		 "indent-adj:" indent-adj
+		 "len:" len
+		 "one-line?:" one-line?
+		 "indent-only?:" indent-only?
+		 "rightcnt:" (:rightcnt options))
         one-line (if (zero? len)
                    :empty
                    (when one-line-ok?
@@ -3206,12 +3279,14 @@
   [caller l-str r-str
    {:keys [rightcnt in-code?],
     {:keys [wrap-coll? wrap? binding? option-fn-first respect-nl? sort?
-            sort-in-code?]}
+            sort-in-code? indent]}
       caller,
     :as options} ind zloc]
+  (dbg options "fzprint-vec* ind:" ind "indent:" indent "caller:" caller)
   (if (and binding? (= (:depth options) 1))
     (fzprint-binding-vec options ind zloc)
-    (let [l-str-vec [[l-str (zcolor-map options l-str) :left]]
+    (let [l-str-len (count l-str)
+          l-str-vec [[l-str (zcolor-map options l-str) :left]]
           r-str-vec (rstr-vec options ind zloc r-str)
           new-options (when option-fn-first
                         (let [first-sexpr (zsexpr (zfirst-no-comment zloc))]
@@ -3221,7 +3296,7 @@
                                  first-sexpr))))
           #_(prn "new-options:" new-options)
           {{:keys [wrap-coll? wrap? binding? option-fn-first respect-nl? sort?
-                   sort-in-code? indent]}
+                   sort-in-code? indent indent-only?]}
              caller,
            :as options}
             (merge-deep options new-options)
@@ -3229,15 +3304,17 @@
           ; sort? and respect-nl? are not both supported for the same structure,
           ; so this doesn't really matter, but if in the future they were, this
           ; would help.
+	  indent (or indent 0)
           respect-nl? (and respect-nl? (not sort?))
-          new-ind (+ indent ind)
- ;         new-ind (+ (count l-str) ind)
+          new-ind (if indent-only? (+ l-str-len ind) (+ indent ind))
+          ;         new-ind (+ (count l-str) ind)
           _ (dbg-pr options "fzprint-vec*:" (zstring zloc) "new-ind:" new-ind)
           zloc-seq
             (if respect-nl? (zmap-w-nl identity zloc) (zmap identity zloc))
-          zloc-seq (if (and sort? (if in-code? sort-in-code? true))
-                     (order-out caller options identity zloc-seq)
-                     zloc-seq)
+          zloc-seq
+            (if (and sort? (if in-code? sort-in-code? true) (not indent-only?))
+              (order-out caller options identity zloc-seq)
+              zloc-seq)
           coll-print (if (zero? (zcount zloc))
                        [[["" :none :whitespace]]]
                        (fzprint-seq options new-ind zloc-seq))
@@ -3258,24 +3335,32 @@
       (when one-line-lines
         (if (fzfit-one-line options one-line-lines)
           (concat-no-nil l-str-vec one-line r-str-vec)
-          (if (or (and (not wrap-coll?) (any-zcoll? options new-ind zloc))
-                  (not wrap?))
+          (if indent-only?
             (concat-no-nil l-str-vec
-                           (apply concat-no-nil
-                             (interpose [[(str "\n" (blanks new-ind)) :none
-                                          :indent]]
-                               (remove-nl coll-print)))
+                           (indent-zmap caller
+                                        options
+                                        (+ ind l-str-len)
+                                        coll-print
+                                        (- indent l-str-len))
                            r-str-vec)
-            ; Since there are either no collections in this vector or set or
-            ; whatever, or if there are, it is ok to wrap them, print it
-            ; wrapped on the same line as much as possible:
-            ;           [a b c d e f
-            ;            g h i j]
-            (concat-no-nil
-              l-str-vec
-              (do (dbg options "fzprint-vec*: wrap coll-print:" coll-print)
-                  (wrap-zmap caller options new-ind coll-print))
-              r-str-vec)))))))
+            (if (or (and (not wrap-coll?) (any-zcoll? options new-ind zloc))
+                    (not wrap?))
+              (concat-no-nil l-str-vec
+                             (apply concat-no-nil
+                               (interpose [[(str "\n" (blanks new-ind)) :none
+                                            :indent]]
+                                 (remove-nl coll-print)))
+                             r-str-vec)
+              ; Since there are either no collections in this vector or set or
+              ; whatever, or if there are, it is ok to wrap them, print it
+              ; wrapped on the same line as much as possible:
+              ;           [a b c d e f
+              ;            g h i j]
+              (concat-no-nil
+                l-str-vec
+                (do (dbg options "fzprint-vec*: wrap coll-print:" coll-print)
+                    (wrap-zmap caller options new-ind coll-print))
+                r-str-vec))))))))
 
 (defn fzprint-vec
   [options ind zloc]
