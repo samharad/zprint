@@ -4,6 +4,7 @@
   (:require
     #?@(:clj [[zprint.macros :refer [dbg-pr dbg dbg-form dbg-print zfuture]]])
     [clojure.string :as s]
+    [zprint.finish :refer [newline-vec]]
     [zprint.zfns :refer
      [zstring znumstr zbyte-array? zcomment? zsexpr zseqnws zmap-right
       zfocus-style zfirst zfirst-no-comment zsecond zthird zfourth znthnext
@@ -2455,59 +2456,75 @@
 
 ; Goal: integrate this with wrap-zmap once we get it working...
 
-(defn indent-fixup
-  "Take a style-vec that was once output from indent-zmap, and fix up
-  all of the :indent elements in it by adding cur-ind to them.  If we
-  find a multiple thing in here, call indent-fixup recursively with the
-  cur-ind that is approprite.  All of the actual indents are correct
-  already -- all we are doing is setting up their base.  There is no
-  attempt to determine if we are exceeding any configured width."
-  [caller options ind svec]
-  (dbg-pr options "indent-fixup: ind:" ind "svec:" svec)
-  (loop [cur-seq svec
-         cur-ind ind
-         out []]
-    (if-not cur-seq
-      out
-      (let [this-seq (first cur-seq)
-            new-seq (if (vector? (first this-seq))
-                      (indent-fixup caller options cur-ind this-seq)
-                      (let [[s color type] this-seq]
-                        (if (= type :indent)
-                          [(str s (blanks ind)) color type]
-                          this-seq)))
-            _ (dbg-pr options
-                      "indent-fixup: cur-ind:" cur-ind
-                      "this-seq:" this-seq
-		      "new-seq:" new-seq)
-            [linecnt max-width lines] (style-lines options cur-ind [new-seq])
-            ; Figure out where we are
-            last-width (last lines)]
-        (dbg-pr options
-                "indent-fixup: last-width:" last-width
-                "new-seq:" new-seq)
-        (recur (next cur-seq) last-width (conj out new-seq))))))
-			   
+(defn indent-shift
+  "Take a style-vec that was once output from indent-zmap, and fix
+  up all of the :indent elements in it by adding (- actual-ind ind)
+  to them.  If we find a multiple thing in here, call indent-shift
+  recursively with the ind and cur-ind that is approprite.  All of
+  the actual indents are correct already -- all we are doing is
+  setting up their base.  There is no attempt to determine if we
+  are exceeding any configured width."
+  [caller options ind actual-ind svec]
+  (let [shift-ind (- actual-ind ind)]
+    (dbg-pr options
+            "indent-shift: ind:" ind
+            "actual-ind:" actual-ind
+            "shift-ind:" shift-ind
+            "svec:" svec)
+    (loop [cur-seq svec
+           cur-ind actual-ind
+           out []]
+      (if-not cur-seq
+        out
+        (let [this-seq (first cur-seq)
+              new-seq (if (vector? (first this-seq))
+                        ; is this ind correct?
+                        (indent-shift caller options ind cur-ind this-seq)
+                        (let [[s color type] this-seq]
+                          (if (= type :indent)
+                            [(str s (blanks shift-ind)) color type]
+                            this-seq)))
+              _ (dbg-pr options
+                        "indent-shift: cur-ind:" cur-ind
+                        "this-seq:" this-seq
+                        "new-seq:" new-seq)
+              ; Shouldn't this be (inc cur-ind)?
+              [linecnt max-width lines] (style-lines options cur-ind [new-seq])
+              ; Figure out where we are
+              last-width (last lines)]
+          (dbg-pr options
+                  "indent-shift: last-width:" last-width
+                  "new-seq:" new-seq)
+          ; Should this be (inc last-width)?
+          (recur (next cur-seq) last-width (conj out new-seq)))))))
+
 (defn indent-zmap
   "Given the output from fzprint-seq, which is a style-vec in
-  the making without spacing, but with extra [] around the elements,
-  wrap the elements to the right margin, recognizing that both comments
-  and newlines are part of all of this. When we get to the right margin
-  and emit a newline, or when we encounter a newline, indent to indent.
-  ind must be the actual place we are when we start (to the right of l-str)."
+  the making without spacing, but with extra [] around the elements.
+  At present this will not wrap elements with respect to the right
+  margin, though it certainly could (and probably should) do so.
+  When we get a newline, replace any spaces after it with our own,
+  and that would be to bring it to ind + indent.  Everything is based
+  off of ind, and we know nothing to the left of that.  ind must be
+  the left end of everything, not the right of l-str!  The actual-ind
+  is to the right of l-str."
   [caller
    {:keys [width rightcnt], {:keys [wrap-after-multi?]} caller, :as options} ind
-   coll-print indent]
+   actual-ind coll-print indent]
   #_(prn "iz:" coll-print)
-  (dbg options "indent-zmap: ind:" ind "indent:" indent)
   (let [last-index (dec (count coll-print))
         rightcnt (fix-rightcnt rightcnt)
         actual-indent (+ ind indent)]
+    (dbg options
+         "indent-zmap: ind:" ind
+         "actual-ind:" actual-ind
+         "indent:" indent
+         "actual-indent:" actual-indent)
     (loop [cur-seq coll-print
-           cur-ind ind
+           cur-ind actual-ind
            index 0
-           previous-newline? false
-           ; transient here slows things down, interestingly enough
+           beginning? true
+           ; transient here slowed things down, in a similar routine
            out []]
       (if-not cur-seq
         out
@@ -2519,13 +2536,10 @@
                             "indent-zmap: cur-ind:" cur-ind
                             "multi?" multi?
                             "(count this-seq):" (count this-seq)
-                            "this-seq:" this-seq)
+                            "this-seq:" this-seq
+                            "out:" out)
                   this-seq (if multi?
-                             (indent-fixup caller
-                                           options
-					   ; The got ind when fzprint-seq
-                                           (- cur-ind ind)
-                                           this-seq)
+                             (indent-shift caller options ind cur-ind this-seq)
                              this-seq)
                   [linecnt max-width lines]
                     (style-lines options cur-ind this-seq)
@@ -2535,65 +2549,122 @@
                   ; Because we called indent-zmap to get the indents right,
                   ; and they will be but for the first line, which style-lines
                   ; fixed because it got the cur-ind..
+                  ;
+                  thetype (nth (first this-seq) 2)
                   ; This is the total width of the current line
-                  len (- last-width ind)
+                  ; relative to ind
+                  len (- last-width cur-ind)
                   _ (dbg options
                          "linecnt:" linecnt
                          "last-width:" last-width
                          "len:" len
                          "type:" (nth (first this-seq) 2))
                   len (max 0 len)
-                  newline? (= (nth (first this-seq) 2) :newline)
+                  ; This isn't the only newline, actually.  Sometimes they
+                  ; are comment or comment-inline.  Later, for indent-shift,
+                  ; they are :indents.  Figure this out!
+                  newline? (= thetype :newline)
+                  isempty? (empty? (first (first this-seq)))
+                  comment? (or (= thetype :comment) (= thetype :comment-inline))
+                  ; Adjust for the rightcnt on the last element
                   width (if (= index last-index) (- width rightcnt) width)
                   ; need to check size, and if one line and fits, should fit
-                  fit? (and (not newline?)
-                            (or (zero? index)
-                                (and ;(if multi? (= linecnt 1) true)
-                                     (<= (+ cur-ind len) width))))
-                  new-ind (cond
-                            (or (= (nth (first this-seq) 2) :comment)
-                                (= (nth (first this-seq) 2) :comment-inline))
-                              ; Force a newline by exceeding the width
-                              (inc width)
-                           (and multi? (> linecnt 1) (not wrap-after-multi?))
-                             (inc width)
-                            fit? (+ cur-ind len 1)
-                            newline? actual-indent
-                            :else (+ ind len 1))
+                  ; ??? why does it fit if this is the first thing?  Because
+                  ; if it isn't, things won't get better?  Seems to me like
+                  ; if the first thing doesn't fit, we should return nil.
+                  ;
+                  ; But this is all about indent-only, not fitting.  But
+                  ; we will probably care about fitting someday.
+                  fit? (<= (+ cur-ind len) width)
+                  ; If we don't care about fit, then don't do this!!
+                  newline-before?
+                    (and (not newline?) (not fit?) (not beginning?))
+                  ; What are we doint about :indent from indent-shift?
+                  newline-after? comment?
+                  new-ind (cond (or newline-after? newline?) actual-indent
+                                newline-before? (+ actual-indent len)
+                                :else (+ cur-ind 1 len))
+                  #_(cond (or (= (nth (first this-seq) 2) :comment)
+                              (= (nth (first this-seq) 2) :comment-inline))
+                            ; Force a newline by exceeding the width
+                            (inc width)
+                          (and multi? (> linecnt 1) (not wrap-after-multi?))
+                            (inc width)
+                          fit? (+ cur-ind len 1)
+                          newline? actual-indent
+                          :else (+ ind len 1))
                   ; Fix up any existing indents to be correct in the current
                   ; context.
-                  this-seq
-                    (if (and (not multi?) (= (nth (first this-seq) 2) :indent))
+                  ;
+                  ; But I think this was done in indent-shift, so let's try
+                  ; and avoid that here
+                  #_this-seq
+                  #_(if (and (not multi?) (= (nth (first this-seq) 2) :indent))
                       [[(str (first (first this-seq)) (blanks len))
                         (second (first this-seq)) (nth (first this-seq) 2)]]
                       this-seq)]
-              (dbg options
-                   "------ this-seq:" this-seq
-                   "lines:" lines
-                   "linecnt:" linecnt
-                   "multi?" multi?
-                   "newline?:" newline?
-                   "previous-newline?:" previous-newline?
-                   "linecnt:" linecnt
-                   "max-width:" max-width
-                   "last-width:" last-width
-                   "len:" len
-                   "cur-ind:" cur-ind
-                   "new-ind:" new-ind
-                   "width:" width
-                   "fit?" fit?)
-              ; need to figure out what to do with a comment,
-              ; want to force next line to not fit whether or not
-              ; this line fit.  Comments are already multi-line, and
-              ; it is really not clear what multi? does in this routine
-              (recur
+              (dbg-pr
+                options
+                "------ this-seq:" this-seq
+                "lines:" lines
+                "linecnt:" linecnt
+                "multi?" multi?
+                "newline?:" newline?
+                "beginning?:" beginning?
+                "max-width:" max-width
+                "last-width:" last-width
+                "len:" len
+                "cur-ind:" cur-ind
+                "isempty?:" isempty?
+                "newline-before?:" newline-before?
+                "newline-after?:" newline-after?
+                "new-ind:" new-ind
+                "width:" width
+                "fit?" fit?)
+              (recur ; [cur-seq, cur-ind, index, beginning?, out]
                 (next cur-seq)
-                (if fit? new-ind actual-indent)
+                new-ind
                 (inc index)
-                newline?
-                ; TODO: concat-no-nil fails here, why?
-                (concat out
-                        (if fit?
+                (or (and isempty? beginning?) (or newline? newline-after?))
+                (if isempty?
+                  (if (or newline-before? newline-after?)
+                    (concat out
+                            [[(str "\n" (blanks actual-indent)) :none :indent]])
+                    out)
+                  ; TODO: concat-no-nil fails here, why?
+                   (concat
+                     out
+                     (cond
+                       newline-before? (concat-no-nil
+                                         [[(str "\n" (blanks actual-indent))
+                                           :none :indent]]
+                                         this-seq)
+                       newline-after?
+                         (if beginning?
+                           (concat-no-nil this-seq
+                                          [[(str "\n" (blanks actual-indent))
+                                            :none :indent]])
+                           (concat-no-nil [[" " :none :whitespace]]
+                                          this-seq
+                                          [[(str "\n" (blanks actual-indent))
+                                            :none :indent]]))
+                       newline? [[(str "\n" (blanks actual-indent)) :none
+                                  :indent]]
+                       ; Remove next line, unnecessary
+                       (zero? index) this-seq
+                       :else (if beginning?
+                               this-seq
+                               (concat-no-nil [[" " :none :whitespace]]
+                                              this-seq)))))))))))))
+
+
+
+
+
+
+
+
+                        #_(if fit?
                           (if (not (zero? index))
                             (concat-no-nil [[" " :none :whitespace]] this-seq)
                             this-seq)
@@ -2603,7 +2674,7 @@
                               (concat-no-nil [[" " :none :indent]] this-seq)
                               (concat-no-nil [[(str "\n" (blanks actual-indent))
                                                :none :indent]]
-                                             this-seq)))))))))))))
+                                             this-seq))))
 
 ; TODO: Fix these, they both need a lot of work
 ; Do we really need both, or just figure out the hang
@@ -2617,14 +2688,16 @@
     :force-nl})
 
 (defn fzprint-indent
-  "This function takes a zloc and the ind, which is where we are on the line
-  this point, and assumes that we have new-lines in the zloc.  Of course we
-  have to have all of the white space in the zloc too, since we need to ask
-  some questions about what we are starting with at some point.  We don't
-  add newlines except when we find things are going too long, but otherwise
-  we let the newlines that are in there do their thing.  This routine has
-  to make decisions about the indent, based on the previous fn-type
-  (if any) and the actual spacing in the incoming lines."
+  "This function takes a zloc and the ind, which is where we are
+  on the line this point, and assumes that we have new-lines in the
+  zloc.  Of course we have to have all of the white space in the
+  zloc too, since we need to ask some questions about what we are
+  starting with at some point.  We don't add newlines and we let
+  the newlines that are in there do their thing.  We might add
+  newlines if we move beyond the right margin, but for now, we
+  don't.  This routine has to make decisions about the indent, based
+  on the previous fn-type (if any) and the actual spacing in the
+  incoming lines."
   [caller l-str r-str options ind zloc fn-style arg-1-indent]
   (let [flow-indent (:indent (caller options))
         l-str-len (count l-str)
@@ -2632,16 +2705,14 @@
         indent (if (and arg-1-indent (hang-indent fn-style))
                  arg-1-indent
                  flow-indent)
-        new-ind (+ indent ind)
         _ (dbg-pr options
                   "fzprint-indent:" (zstring zloc)
                   "ind:" ind
                   "l-str-len:" (count l-str)
-                  "new-ind:" new-ind
-                  "indent:" indent
-                  "actual-ind:" actual-ind)
+                  "actual-ind:" actual-ind
+                  "indent:" indent)
         zloc-seq (zmap identity zloc)
-        coll-print (fzprint-seq options actual-ind zloc-seq)
+        coll-print (fzprint-seq options ind zloc-seq)
         _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
         ; If we got any nils from fzprint-seq and we were in :one-line mode
         ; then give up -- it didn't fit on one line.
@@ -2651,9 +2722,10 @@
     ; line.  Just like fzprint-one-line needs one-line-ind, not ind.
     (let [output (indent-zmap caller
                               options
+			      ind
                               actual-ind
                               coll-print
-                              (- indent l-str-len))]
+                              indent)]
       (dbg-pr options "fzprint-indent: output:" output)
       output)))
 
@@ -3306,7 +3378,7 @@
           ; would help.
 	  indent (or indent 0)
           respect-nl? (and respect-nl? (not sort?))
-          new-ind (if indent-only? (+ l-str-len ind) (+ indent ind))
+          new-ind (if indent-only? ind (+ indent ind))
           ;         new-ind (+ (count l-str) ind)
           _ (dbg-pr options "fzprint-vec*:" (zstring zloc) "new-ind:" new-ind)
           zloc-seq
@@ -3339,9 +3411,11 @@
             (concat-no-nil l-str-vec
                            (indent-zmap caller
                                         options
+					ind
+					; actual-ind
                                         (+ ind l-str-len)
                                         coll-print
-                                        (- indent l-str-len))
+					indent)
                            r-str-vec)
             (if (or (and (not wrap-coll?) (any-zcoll? options new-ind zloc))
                     (not wrap?))
@@ -3871,6 +3945,18 @@
                             (if namespaced? (next zloc-seq) zloc-seq))))
       r-str-vec)))
 
+(defn fzprint-newline
+  "Given an element which contains newlines, do whatever indent is appropriate
+  so that indent-shift can handle them later."
+  [options ind zloc]
+  (let [zstr (zstring (zfirst zloc))
+        [newline-count _] (newline-vec zstr)]
+    (dbg-pr options
+            "fzprint-newline: zloc:" (zstring zloc)
+            "newline-count:" newline-count)
+    [["" :none :comment-inline]]))
+  
+
 (def prefix-tags
   {:quote "'",
    :syntax-quote "`",
@@ -3935,61 +4021,64 @@
     ; We don't check depth if it is not a collection.  We might have
     ; just not incremented depth if it wasn't a collection, but this
     ; may be equivalent.
-    (cond
-      (and (zcoll? zloc)
-           (or (>= depth max-depth) (zero? (get-max-length options))))
-        (if (= zloc (zdotdotdot))
-          [["..." (zcolor-map options :none) :element]]
-          [[(:max-depth-string options) (zcolor-map options :keyword)
-            :element]])
-      (and in-hang?
-           (not in-code?)
-           ;(> (/ indent width) 0.3)
-           (or (> (- depth in-hang?) max-hang-span)
-               (and (not one-line?)
-                    (> (zcount zloc) max-hang-count)
-                    (> depth max-hang-depth))))
-        nil
-      (zrecord? zloc) (fzprint-record options indent zloc)
-      (zlist? zloc) (fzprint-list options indent zloc)
-      (zvector? zloc) (fzprint-vec options indent zloc)
+    (cond (and (zcoll? zloc)
+               (or (>= depth max-depth) (zero? (get-max-length options))))
+            (if (= zloc (zdotdotdot))
+              [["..." (zcolor-map options :none) :element]]
+              [[(:max-depth-string options) (zcolor-map options :keyword)
+                :element]])
+          (and in-hang?
+               (not in-code?)
+               ;(> (/ indent width) 0.3)
+               (or (> (- depth in-hang?) max-hang-span)
+                   (and (not one-line?)
+                        (> (zcount zloc) max-hang-count)
+                        (> depth max-hang-depth))))
+            nil
+          (zrecord? zloc) (fzprint-record options indent zloc)
+          (zlist? zloc) (fzprint-list options indent zloc)
+          (zvector? zloc) (fzprint-vec options indent zloc)
       (or (zmap? zloc) (znamespacedmap? zloc)) (fzprint-map options indent zloc)
-      (zset? zloc) (fzprint-set options indent zloc)
-      (zanonfn? zloc) (fzprint-anon-fn options indent zloc)
-      (zfn-obj? zloc) (fzprint-fn-obj options indent zloc)
-      (zarray? zloc)
-        (if (:object? (:array options))
-          (fzprint-object options indent zloc)
-          (fzprint-array #?(:clj (if (:hex? (:array options))
-                                   (assoc options
-                                     :hex? (:hex? (:array options))
-                                     :shift-seq (zarray-to-shift-seq zloc))
-                                   options)
-                            :cljs options)
-                         indent
-                         (zexpandarray zloc)))
-      (zatom? zloc) (fzprint-atom options indent zloc)
-      (zmeta? zloc) (fzprint-meta options indent zloc)
-      (prefix-tags (ztag zloc)) (fzprint-vec* :none
-                                              (prefix-tags (ztag zloc))
-                                              ""
-                                              (prefix-options options
-                                                              (ztag zloc))
-                                              indent
-                                              zloc)
-      (zns? zloc) (fzprint-ns options indent zloc)
-      (or (zpromise? zloc) (zfuture? zloc) (zdelay? zloc) (zagent? zloc))
-        (fzprint-future-promise-delay-agent options indent zloc)
-      (zreader-macro? zloc) (fzprint-reader-macro options indent zloc)
-      ; This is needed to not be there for newlines in parse-string-all,
-      ; but is needed for respect-nl? support.
-      (and (= (ztag zloc) :newline) (> depth 0)) [["\n" :none :newline]]
-      :else
-        (let [zstr (zstring zloc)
-              overflow-in-hang? (and in-hang?
-                                     (> (+ (count zstr) indent (or rightcnt 0))
-                                        width))]
-          (cond (zcomment? zloc)
+          (zset? zloc) (fzprint-set options indent zloc)
+          (zanonfn? zloc) (fzprint-anon-fn options indent zloc)
+          (zfn-obj? zloc) (fzprint-fn-obj options indent zloc)
+          (zarray? zloc)
+            (if (:object? (:array options))
+              (fzprint-object options indent zloc)
+              (fzprint-array #?(:clj (if (:hex? (:array options))
+                                       (assoc options
+                                         :hex? (:hex? (:array options))
+                                         :shift-seq (zarray-to-shift-seq zloc))
+                                       options)
+                                :cljs options)
+                             indent
+                             (zexpandarray zloc)))
+          (zatom? zloc) (fzprint-atom options indent zloc)
+          (zmeta? zloc) (fzprint-meta options indent zloc)
+          (prefix-tags (ztag zloc)) (fzprint-vec* :none
+                                                  (prefix-tags (ztag zloc))
+                                                  ""
+                                                  (prefix-options options
+                                                                  (ztag zloc))
+                                                  indent
+                                                  zloc)
+          (zns? zloc) (fzprint-ns options indent zloc)
+          (or (zpromise? zloc) (zfuture? zloc) (zdelay? zloc) (zagent? zloc))
+            (fzprint-future-promise-delay-agent options indent zloc)
+          (zreader-macro? zloc) (fzprint-reader-macro options indent zloc)
+          ; This is needed to not be there for newlines in parse-string-all,
+          ; but is needed for respect-nl? support.
+          (and (= (ztag zloc) :newline) (> depth 0)) [["\n" :none :newline]]
+          :else
+            (let [zstr (zstring zloc)
+                  overflow-in-hang?
+                    (and in-hang?
+                         (> (+ (count zstr) indent (or rightcnt 0)) width))]
+              (cond
+		(and (zcomment? zloc) 
+		     (not (clojure.string/starts-with? ";" zstr)))
+	          (fzprint-newline options indent zloc)
+                (zcomment? zloc)
                   (let [zcomment
                           ; Do we have a file-level comment that is way too
                           ; long??
