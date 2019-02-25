@@ -2549,8 +2549,7 @@
                   ; Because we called indent-zmap to get the indents right,
                   ; and they will be but for the first line, which style-lines
                   ; fixed because it got the cur-ind..
-                  ;
-                  thetype (nth (first this-seq) 2)
+                  thetype (nth (last this-seq) 2)
                   ; This is the total width of the current line
                   ; relative to ind
                   len (- last-width cur-ind)
@@ -2558,7 +2557,7 @@
                          "linecnt:" linecnt
                          "last-width:" last-width
                          "len:" len
-                         "type:" (nth (first this-seq) 2))
+                         "type:" thetype)
                   len (max 0 len)
                   ; This isn't the only newline, actually.  Sometimes they
                   ; are comment or comment-inline.  Later, for indent-shift,
@@ -2625,37 +2624,40 @@
                 (next cur-seq)
                 new-ind
                 (inc index)
-                (or (and isempty? beginning?) (or newline? newline-after?))
+		; beginning can happen because we created an indent
+		; or because a multi already had one.
+                (or (and isempty? beginning?) newline? newline-after?
+		    (= thetype :indent))
                 (if isempty?
                   (if (or newline-before? newline-after?)
                     (concat out
                             [[(str "\n" (blanks actual-indent)) :none :indent]])
                     out)
                   ; TODO: concat-no-nil fails here, why?
-                   (concat
-                     out
-                     (cond
-                       newline-before? (concat-no-nil
+                  (concat
+                    out
+                    (cond
+                      newline-before? (concat-no-nil
+                                        [[(str "\n" (blanks actual-indent))
+                                          :none :indent]]
+                                        this-seq)
+                      newline-after?
+                        (if beginning?
+                          (concat-no-nil this-seq
                                          [[(str "\n" (blanks actual-indent))
-                                           :none :indent]]
-                                         this-seq)
-                       newline-after?
-                         (if beginning?
-                           (concat-no-nil this-seq
-                                          [[(str "\n" (blanks actual-indent))
-                                            :none :indent]])
-                           (concat-no-nil [[" " :none :whitespace]]
-                                          this-seq
-                                          [[(str "\n" (blanks actual-indent))
-                                            :none :indent]]))
-                       newline? [[(str "\n" (blanks actual-indent)) :none
-                                  :indent]]
-                       ; Remove next line, unnecessary
-                       (zero? index) this-seq
-                       :else (if beginning?
-                               this-seq
-                               (concat-no-nil [[" " :none :whitespace]]
-                                              this-seq)))))))))))))
+                                           :none :indent]])
+                          (concat-no-nil [[" " :none :whitespace]]
+                                         this-seq
+                                         [[(str "\n" (blanks actual-indent))
+                                           :none :indent]]))
+                      newline? [[(str "\n" (blanks actual-indent)) :none
+                                 :indent]]
+                      ; Remove next line, unnecessary
+                      (zero? index) this-seq
+                      :else (if beginning?
+                              this-seq
+                              (concat-no-nil [[" " :none :whitespace]]
+                                             this-seq)))))))))))))
 
 
 
@@ -3945,7 +3947,7 @@
                             (if namespaced? (next zloc-seq) zloc-seq))))
       r-str-vec)))
 
-(defn fzprint-newline
+#_(defn fzprint-newline
   "Given an element which contains newlines, do whatever indent is appropriate
   so that indent-shift can handle them later."
   [options ind zloc]
@@ -3955,7 +3957,18 @@
             "fzprint-newline: zloc:" (zstring zloc)
             "newline-count:" newline-count)
     [["" :none :comment-inline]]))
-  
+
+(defn fzprint-newline
+  "Given an element which contains newlines, do whatever indent is appropriate
+  so that indent-shift can handle them later."
+  [options ind zloc]
+  (let [zstr (zstring zloc)
+        [newline-count _] (newline-vec zstr)]
+    (dbg-pr options
+            "fzprint-newline: zloc:" (zstring zloc)
+            "newline-count:" newline-count
+	    "ind:" ind)
+    [[(str "\n" (blanks ind)) :none :indent]]))
 
 (def prefix-tags
   {:quote "'",
