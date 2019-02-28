@@ -2499,22 +2499,22 @@
           (recur (next cur-seq) last-width (conj out new-seq)))))))
 
 (defn indent-zmap
-  "Given the output from fzprint-seq, which is a style-vec in
-  the making without spacing, but with extra [] around the elements.
-  At present this will not wrap elements with respect to the right
-  margin, though it certainly could (and probably should) do so.
-  When we get a newline, replace any spaces after it with our own,
-  and that would be to bring it to ind + indent.  Everything is based
-  off of ind, and we know nothing to the left of that.  ind must be
-  the left end of everything, not the right of l-str!  The actual-ind
-  is to the right of l-str."
+  "Given the output from fzprint-seq, which is a style-vec in the
+  making without spacing, but with extra [] around the elements.
+  At present this will wrap elements with respect to the right
+  margin, though it certainly could be fixed to no do so (and
+  probably should) do so.  When we get a newline, replace any spaces
+  after it with our own, and that would be to bring it to ind +
+  indent.  Everything is based off of ind, and we know nothing to
+  the left of that.  ind must be the left end of everything, not
+  the right of l-str!  The actual-ind is to the right of l-str."
   [caller
    {:keys [width rightcnt], {:keys [wrap-after-multi?]} caller, :as options} ind
    actual-ind coll-print indent]
   #_(prn "iz:" coll-print)
   (let [last-index (dec (count coll-print))
         rightcnt (fix-rightcnt rightcnt)
-        actual-indent (+ ind indent)]
+        actual-indent (+ actual-ind indent)]
     (dbg options
          "indent-zmap: ind:" ind
          "actual-ind:" actual-ind
@@ -2539,7 +2539,7 @@
                             "this-seq:" this-seq
                             "out:" out)
                   this-seq (if multi?
-                             (indent-shift caller options ind cur-ind this-seq)
+                             (indent-shift caller options actual-ind cur-ind this-seq)
                              this-seq)
                   [linecnt max-width lines]
                     (style-lines options cur-ind this-seq)
@@ -2704,17 +2704,19 @@
   (let [flow-indent (:indent (caller options))
         l-str-len (count l-str)
         actual-ind (+ ind l-str-len)
-        indent (if (and arg-1-indent (hang-indent fn-style))
+        raw-indent (if (and arg-1-indent (hang-indent fn-style))
                  arg-1-indent
                  flow-indent)
+        indent (- raw-indent l-str-len)
         _ (dbg-pr options
                   "fzprint-indent:" (zstring zloc)
                   "ind:" ind
                   "l-str-len:" (count l-str)
                   "actual-ind:" actual-ind
+                  "raw-indent:" raw-indent
                   "indent:" indent)
         zloc-seq (zmap identity zloc)
-        coll-print (fzprint-seq options ind zloc-seq)
+        coll-print (fzprint-seq options actual-ind zloc-seq)
         _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
         ; If we got any nils from fzprint-seq and we were in :one-line mode
         ; then give up -- it didn't fit on one line.
@@ -3967,8 +3969,8 @@
     (dbg-pr options
             "fzprint-newline: zloc:" (zstring zloc)
             "newline-count:" newline-count
-	    "ind:" ind)
-    [[(str "\n" (blanks ind)) :none :indent]]))
+            "ind:" ind)
+    (into [] (repeat newline-count [(str "\n" (blanks ind)) :none :indent]))))
 
 (def prefix-tags
   {:quote "'",
