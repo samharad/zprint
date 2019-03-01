@@ -2465,7 +2465,7 @@
   setting up their base.  There is no attempt to determine if we
   are exceeding any configured width."
   [caller options ind actual-ind svec]
-  (let [shift-ind (- actual-ind ind)]
+  (let [shift-ind actual-ind #_(- actual-ind ind)]
     (dbg-pr options
             "indent-shift: ind:" ind
             "actual-ind:" actual-ind
@@ -2517,7 +2517,7 @@
   (let [coll-print (merge-fzprint-seq coll-print)
         last-index (dec (count coll-print))
         rightcnt (fix-rightcnt rightcnt)
-        actual-indent (+ actual-ind indent)]
+        actual-indent (+ ind indent)]
     (dbg options
          "indent-zmap: ind:" ind
          "actual-ind:" actual-ind
@@ -2734,9 +2734,9 @@
   starting with at some point.  We don't add newlines and we let
   the newlines that are in there do their thing.  We might add
   newlines if we move beyond the right margin, but for now, we
-  don't.  This routine has to make decisions about the indent, based
-  on the previous fn-type (if any) and the actual spacing in the
-  incoming lines."
+  don't (well, we do actually).  This routine has to make decisions 
+  about the indent, based on the previous fn-type (if any) and 
+  the actual spacing in the incoming lines."
   [caller l-str r-str options ind zloc fn-style arg-1-indent]
   (let [flow-indent (:indent (caller options))
         l-str-len (count l-str)
@@ -2744,7 +2744,8 @@
         raw-indent (if (and arg-1-indent (hang-indent fn-style))
                  arg-1-indent
                  flow-indent)
-        indent (- raw-indent l-str-len)
+        indent raw-indent
+	#_(- raw-indent l-str-len)
         _ (dbg-pr options
                   "fzprint-indent:" (zstring zloc)
                   "ind:" ind
@@ -2753,7 +2754,7 @@
                   "raw-indent:" raw-indent
                   "indent:" indent)
         zloc-seq (zmap identity zloc)
-        coll-print (fzprint-seq options actual-ind zloc-seq)
+        coll-print (fzprint-seq options ind zloc-seq)
         _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
         ; If we got any nils from fzprint-seq and we were in :one-line mode
         ; then give up -- it didn't fit on one line.
@@ -3416,8 +3417,8 @@
           ; If sort? is true, then respect-nl? makes no sense.  And vice versa.
           ; If respect-nl?, then no sort.
           indent (or indent 0)
-          new-ind (+ indent ind)
-          #_(if indent-only? ind (+ indent ind))
+          new-ind (if indent-only? ind (+ indent ind))
+	  #_(+ indent ind)
           ;         new-ind (+ (count l-str) ind)
           _ (dbg-pr options "fzprint-vec*:" (zstring zloc) "new-ind:" new-ind)
           zloc-seq
@@ -3456,7 +3457,7 @@
                                         ; actual-ind
                                         (+ ind l-str-len)
                                         coll-print
-                                        (- indent l-str-len))
+                                        indent)
                            r-str-vec)
             (if (or (and (not wrap-coll?) (any-zcoll? options new-ind zloc))
                     (not wrap?))
