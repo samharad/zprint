@@ -253,8 +253,9 @@
                       :alt/extend]))
 (s/def ::return-cvec? ::boolean)
 (s/def ::set
-  (only-keys :opt-un [::indent ::sort? ::sort-in-code? ::wrap-after-multi?
-                      ::wrap-coll? ::wrap?]))
+  (only-keys :opt-un [::indent ::indent-only? ::respect-nl? ::sort?
+                      ::sort-in-code? ::wrap-after-multi? ::wrap-coll?
+                      ::wrap?]))
 (s/def ::spaces? ::boolean)
 (s/def ::spec (only-keys :opt-un [::docstring? ::value]))
 (s/def ::style ::style-value)

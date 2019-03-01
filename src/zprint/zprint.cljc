@@ -2498,6 +2498,8 @@
           ; Should this be (inc last-width)?
           (recur (next cur-seq) last-width (conj out new-seq)))))))
 
+(declare merge-fzprint-seq)
+
 (defn indent-zmap
   "Given the output from fzprint-seq, which is a style-vec in the
   making without spacing, but with extra [] around the elements.
@@ -2512,7 +2514,8 @@
    {:keys [width rightcnt], {:keys [wrap-after-multi?]} caller, :as options} ind
    actual-ind coll-print indent]
   #_(prn "iz:" coll-print)
-  (let [last-index (dec (count coll-print))
+  (let [coll-print (merge-fzprint-seq coll-print)
+        last-index (dec (count coll-print))
         rightcnt (fix-rightcnt rightcnt)
         actual-indent (+ actual-ind indent)]
     (dbg options
@@ -2538,9 +2541,10 @@
                             "(count this-seq):" (count this-seq)
                             "this-seq:" this-seq
                             "out:" out)
-                  this-seq (if multi?
-                             (indent-shift caller options actual-ind cur-ind this-seq)
-                             this-seq)
+                  this-seq
+                    (if multi?
+                      (indent-shift caller options actual-ind cur-ind this-seq)
+                      this-seq)
                   [linecnt max-width lines]
                     (style-lines options cur-ind this-seq)
                   ; Figure out where we are
@@ -2624,10 +2628,12 @@
                 (next cur-seq)
                 new-ind
                 (inc index)
-		; beginning can happen because we created an indent
-		; or because a multi already had one.
-                (or (and isempty? beginning?) newline? newline-after?
-		    (= thetype :indent))
+                ; beginning can happen because we created an indent
+                ; or because a multi already had one.
+                (or (and isempty? beginning?)
+                    newline?
+                    newline-after?
+                    (= thetype :indent))
                 (if isempty?
                   (if (or newline-before? newline-after?)
                     (concat out
@@ -2688,6 +2694,37 @@
   #{:binding :arg1 :arg1-body :hang :fn :noarg1-body :noarg1 :arg2 :arg2-fn
     :arg1-force-nl :gt2-force-nl :gt3-force-nl :flow :flow-body :force-nl-body
     :force-nl})
+
+#_(defn newline-seq?
+  "Given a vector of vectors, decide if we should merge these individually
+  into the top level vector."
+  [newline-vec]
+  (let [type-vec (mapv #(nth % 2) newline-vec)
+        type-vec (distinct type-vec)]
+    (and (= (count type-vec) 1) (= (first type-vec) :newline))))
+
+(defn newline-seq?
+  "Given a vector of vectors, decide if we should merge these individually
+  into the top level vector."
+  [newline-vec]
+  (let [starts-with-nl-vec (mapv #(clojure.string/starts-with? (first %) "\n")
+                             newline-vec)
+	_ (println "starts-with-nl-vec" starts-with-nl-vec)
+        true-seq (distinct starts-with-nl-vec)]
+    (and (= (count true-seq) 1) (= (first true-seq) true))))
+
+(defn merge-fzprint-seq
+  "Given the output from fzprint-seq, which is a seq of the
+  output of fzprint*, apply a function to each of them that has
+  more than one element (since less has no meaning) and when the
+  function returns true, merge the vector in as individual elements."
+  [fzprint-seq-vec]
+  (into []
+        (reduce #(if (newline-seq? %2)
+                  (into [] (concat %1 (mapv vector %2)))
+                  (conj %1 %2))
+          []
+          fzprint-seq-vec)))
 
 (defn fzprint-indent
   "This function takes a zloc and the ind, which is where we are
@@ -3376,21 +3413,21 @@
              caller,
            :as options}
             (merge-deep options new-options)
-          ; If sort? is true, then respect-nl? makes no sense.  At present,
-          ; sort? and respect-nl? are not both supported for the same structure,
-          ; so this doesn't really matter, but if in the future they were, this
-          ; would help.
-	  indent (or indent 0)
-          respect-nl? (and respect-nl? (not sort?))
-          new-ind (if indent-only? ind (+ indent ind))
+          ; If sort? is true, then respect-nl? makes no sense.  And vice versa.
+          ; If respect-nl?, then no sort.
+          indent (or indent 0)
+          new-ind (+ indent ind)
+          #_(if indent-only? ind (+ indent ind))
           ;         new-ind (+ (count l-str) ind)
           _ (dbg-pr options "fzprint-vec*:" (zstring zloc) "new-ind:" new-ind)
           zloc-seq
             (if respect-nl? (zmap-w-nl identity zloc) (zmap identity zloc))
-          zloc-seq
-            (if (and sort? (if in-code? sort-in-code? true) (not indent-only?))
-              (order-out caller options identity zloc-seq)
-              zloc-seq)
+          zloc-seq (if (and sort?
+                            (if in-code? sort-in-code? true)
+                            (not respect-nl?)
+                            (not indent-only?))
+                     (order-out caller options identity zloc-seq)
+                     zloc-seq)
           coll-print (if (zero? (zcount zloc))
                        [[["" :none :whitespace]]]
                        (fzprint-seq options new-ind zloc-seq))
@@ -3415,11 +3452,11 @@
             (concat-no-nil l-str-vec
                            (indent-zmap caller
                                         options
-					ind
-					; actual-ind
+                                        ind
+                                        ; actual-ind
                                         (+ ind l-str-len)
                                         coll-print
-					indent)
+                                        (- indent l-str-len))
                            r-str-vec)
             (if (or (and (not wrap-coll?) (any-zcoll? options new-ind zloc))
                     (not wrap?))
@@ -3950,19 +3987,8 @@
       r-str-vec)))
 
 #_(defn fzprint-newline
-  "Given an element which contains newlines, do whatever indent is appropriate
-  so that indent-shift can handle them later."
-  [options ind zloc]
-  (let [zstr (zstring (zfirst zloc))
-        [newline-count _] (newline-vec zstr)]
-    (dbg-pr options
-            "fzprint-newline: zloc:" (zstring zloc)
-            "newline-count:" newline-count)
-    [["" :none :comment-inline]]))
-
-(defn fzprint-newline
-  "Given an element which contains newlines, do whatever indent is appropriate
-  so that indent-shift can handle them later."
+  "Given an element which contains newlines, split it up into individual
+  newline elements."
   [options ind zloc]
   (let [zstr (zstring zloc)
         [newline-count _] (newline-vec zstr)]
@@ -3970,7 +3996,19 @@
             "fzprint-newline: zloc:" (zstring zloc)
             "newline-count:" newline-count
             "ind:" ind)
-    (into [] (repeat newline-count [(str "\n" (blanks ind)) :none :indent]))))
+    (into [] (repeat newline-count [(str "\n" (blanks ind)) :none :newline]))))
+
+(defn fzprint-newline
+  "Given an element which contains newlines, split it up into individual
+  newline elements."
+  [options ind zloc]
+  (let [zstr (zstring zloc)
+        [newline-count _] (newline-vec zstr)]
+    (dbg-pr options
+            "fzprint-newline: zloc:" (zstring zloc)
+            "newline-count:" newline-count
+            "ind:" ind)
+    (into [] (repeat newline-count [(str "\n" (blanks ind)) :none :newline]))))
 
 (def prefix-tags
   {:quote "'",

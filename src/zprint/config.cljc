@@ -519,6 +519,8 @@
    :return-cvec? false,
    :search-config? false,
    :set {:indent 1,
+	 :indent-only? false
+	 :respect-nl? false
          :sort? true,
          :sort-in-code? false,
          :wrap-after-multi? true,
