@@ -4140,7 +4140,8 @@
                          (> (+ (count zstr) indent (or rightcnt 0)) width))]
               (cond
 		(and (zcomment? zloc) 
-		     (not (clojure.string/starts-with? ";" zstr)))
+		     #_(not (clojure.string/starts-with? ";" zstr))
+		     (not (some #{\;} zstr)))
 	          (fzprint-newline options indent zloc)
                 (zcomment? zloc)
                   (let [zcomment
