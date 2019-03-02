@@ -454,6 +454,7 @@
          ; was created and set to 0.  That certainly looks better, but
          ; wider stuff seems better with -1, so for now, we will go with that.
          :hang-adjust -1,
+	 :indent-only? false
          :key-order nil,
          :key-ignore nil,
          :key-ignore-silent nil,
@@ -468,6 +469,7 @@
          :justify? false,
          :justify-hang {:hang-expand 5},
          :justify-tuning {:hang-flow 4, :hang-flow-limit 30},
+	 :repsect-nl? false,
          :unlift-ns? false},
    :max-depth 1000,
    :max-depth-string "##",
