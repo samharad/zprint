@@ -135,6 +135,10 @@
   #?(:clj z/rightmost?
      :cljs zm/rightmost?))
 
+(def leftmost?
+  #?(:clj z/leftmost?
+     :cljs zm/leftmost?))
+
 ; conflicts with clojure.core:
 
 (def zremove

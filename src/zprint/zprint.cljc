@@ -2454,7 +2454,125 @@
   ([caller options hindent findent zloc fn-style]
    (fzprint-hang-remaining caller options hindent findent zloc fn-style nil)))
 
-; Goal: integrate this with wrap-zmap once we get it working...
+
+;;
+;; # Indent-only support
+;;
+
+(defn at-newline?
+  "Is this a newline or equivalent?  Comments and newlines are both
+  newlines."
+  [zloc]
+  (let [this-tag (ztag zloc)]
+    (or (= this-tag :comment) (= this-tag :newline))))
+
+(defn next-newline
+  "Given a zloc that is down inside of a collection, presumably
+  alist, return a vector containing the number of printing elements
+  we had to traverse to get to it as well as the newline."
+  [zloc]
+  (loop [nloc zloc
+         index 0]
+    (prn "next-newline:" (zstring nloc) "tag:" (zprint.zutil/tag nloc))
+    (let [next-right (zprint.zutil/right* nloc)]
+      (if next-right
+        (if (at-newline? nloc)
+          [index nloc]
+          (recur (zprint.zutil/right* nloc)
+                 (if-not (zprint.zutil/whitespace? nloc) (inc index) index)))
+        [index nloc]))))
+
+(defn length-after-newline
+  "Given a string, return the number of characters to the right
+  of any newlines in the string.  Will return nil if no newlines
+  in the string."
+  [s]
+  (let [nl-split (clojure.string/split (str s " ") #"\n")
+        nl-num (dec (count nl-split))]
+    (when-not (zero? nl-num) (dec (count (last nl-split))))))
+
+(defn length-before
+  "Given a zloc, find the amount of printing space before it on its
+  current line."
+  [zloc]
+  (loop [ploc zloc
+         indent-before 0
+         index 0]
+    (prn "length-before: index:" index
+         "ploc:" (zstring ploc)
+         "tag:" (zprint.zutil/tag ploc))
+    (if-not ploc
+      indent-before
+      (let [next-left (zprint.zutil/left* ploc)
+            moving-up (when-not next-left (zprint.zutil/up* ploc))
+            up-tag (when moving-up (zprint.zutil/tag moving-up))
+            up-size (case up-tag
+                      :list 1
+                      :vector 1
+                      :set 2
+                      0)
+            at-newline? (when-not (zero? index) (at-newline? ploc))
+            zstr (if (zero? index) "" (zstring ploc))
+            length-right-of-newline (length-after-newline zstr)]
+        (prn "length-before: nil? next-left:" (nil? next-left)
+	     "moving-up:" (zstring moving-up)
+	     "up-tag:" up-tag
+             "at-newline?:" at-newline?
+             "zstr:" zstr
+             "length-right-of-newline:" length-right-of-newline)
+        (if at-newline?
+          indent-before
+          (if length-right-of-newline
+            (+ length-right-of-newline indent-before)
+            (recur (if next-left
+                     next-left
+                     (->> ploc
+                          zprint.zutil/up*
+                          zprint.zutil/left*))
+                   (+ indent-before (count zstr) up-size)
+                   (inc index))))))))
+
+(defn next-actual
+  "Return the next actual element, ignoring comments and whitespace
+  and everything else but real elements."
+  [zloc]
+  (loop [nloc zloc]
+    (if-not nloc
+      nloc
+      (let [next-nloc (zprint.zutil/zrightnws nloc)
+            next-tag (zprint.zutil/tag next-nloc)]
+        (if-not (or (= next-tag :newline) (= next-tag :comment))
+          next-nloc
+          (recur next-nloc))))))
+
+(defn hang-zloc?
+  "Should we hang this zloc, or flow it.  We assume that we are at
+  the start of the collection (though this could be generalized to
+  deal with other starting locations easily enough).  Return true
+  if we should hang it based just on the information in the zloc
+  itself.  The criteria are: If there is a newline after the second
+  thing in the zloc, and the amount of space prior to the third thing
+  is the same as the amount of space prior to the second thing, then
+  the incoming zloc was hung and we should do the same."
+  [zloc]
+  (let [[count-prior-to-newline newline] (next-newline zloc)]
+    (prn "hang-zloc?: count-prior...:" count-prior-to-newline
+            "zloc:" (zstring zloc))
+    (if (< count-prior-to-newline 1)
+      false
+      (let [second-element (zprint.zutil/zrightnws
+                             (if (zprint.zutil/whitespace? zloc)
+                               (zprint.zutil/zrightnws zloc)
+                               zloc))
+            second-indent (length-before second-element)
+	    third-element (next-actual second-element)
+            third-indent (length-before third-element)]
+        (prn "hang-zloc?: second-element:" (zstring second-element)
+             "second-indent:" second-indent
+             "third-element:" (zstring third-element)
+	     "third-tag:" (zprint.zutil/tag third-element)
+             "third-indent:" third-indent)
+        (= second-indent third-indent)))))
 
 (defn indent-shift
   "Take a style-vec that was once output from indent-zmap, and fix
@@ -2668,22 +2786,6 @@
 
 
 
-
-
-
-
-                        #_(if fit?
-                          (if (not (zero? index))
-                            (concat-no-nil [[" " :none :whitespace]] this-seq)
-                            this-seq)
-                          (if newline?
-                            [[(str "\n" (blanks (dec new-ind))) :none :indent]]
-                            (if previous-newline?
-                              (concat-no-nil [[" " :none :indent]] this-seq)
-                              (concat-no-nil [[(str "\n" (blanks actual-indent))
-                                               :none :indent]]
-                                             this-seq))))
-
 ; TODO: Fix these, they both need a lot of work
 ; Do we really need both, or just figure out the hang
 ; ones?
@@ -2741,33 +2843,35 @@
   (let [flow-indent (:indent (caller options))
         l-str-len (count l-str)
         actual-ind (+ ind l-str-len)
-        raw-indent (if (and arg-1-indent (hang-indent fn-style))
-                 arg-1-indent
-                 flow-indent)
+        #_(- raw-indent l-str-len)
+        zloc-seq (zmap identity zloc)
+        coll-print (fzprint-seq options ind zloc-seq)
+        _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
+        already-hung? (hang-zloc? (first zloc-seq))
+	#_(and (> (count coll-print) 3)
+                           (let [third-type (nth (first (nth coll-print 2)) 2)]
+                             (or (= third-type :comment)
+                                 (= third-type :newline)
+                                 (= third-type :comment-inline))))
+        raw-indent (if (and arg-1-indent already-hung? #_(hang-indent fn-style))
+                     arg-1-indent
+                     flow-indent)
         indent raw-indent
-	#_(- raw-indent l-str-len)
         _ (dbg-pr options
                   "fzprint-indent:" (zstring zloc)
                   "ind:" ind
+                  "fn-style:" fn-style
+		  "already-hung?:" already-hung?
+                  "arg-1-indent:" arg-1-indent
                   "l-str-len:" (count l-str)
                   "actual-ind:" actual-ind
                   "raw-indent:" raw-indent
                   "indent:" indent)
-        zloc-seq (zmap identity zloc)
-        coll-print (fzprint-seq options ind zloc-seq)
-        _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
-        ; If we got any nils from fzprint-seq and we were in :one-line mode
-        ; then give up -- it didn't fit on one line.
         coll-print (if-not (contains-nil? coll-print) coll-print)]
     ; indent needs to adjust for the size of l-str-vec, since actual-ind
     ; has l-str-vec in it so that indent-zmap knows where we are on the
     ; line.  Just like fzprint-one-line needs one-line-ind, not ind.
-    (let [output (indent-zmap caller
-                              options
-			      ind
-                              actual-ind
-                              coll-print
-                              indent)]
+    (let [output (indent-zmap caller options ind actual-ind coll-print indent)]
       (dbg-pr options "fzprint-indent: output:" output)
       output)))
 
@@ -3578,7 +3682,7 @@
                                        ind
                                        zloc
                                        nil ;fn-style
-                                       0) ;arg-1-indent
+                                       nil) ;arg-1-indent
                        r-str-vec)))
     (let [options (assoc options :map-depth (inc map-depth))
           zloc (if (and (= ztype :sexpr) (or key-ignore key-ignore-silent))
