@@ -2491,7 +2491,55 @@
         nl-num (dec (count nl-split))]
     (when-not (zero? nl-num) (dec (count (last nl-split))))))
 
+(defn left-or-up
+  "Take a zloc and move left if possible, or move up if necessary.
+  Return a vector with [up-size new-zloc]"
+  [zloc]
+  (loop [ploc zloc
+         total-up 0]
+    (prn "left-or-up: ploc:" (zstring ploc) "total-up:" total-up)
+    (let [next-left (zprint.zutil/left* ploc)]
+      (if next-left
+        [total-up next-left]
+        ; can't go left, what about up?
+        (let [moving-up (zprint.zutil/up* ploc)
+              up-tag (when moving-up (zprint.zutil/tag moving-up))
+              up-size (case up-tag
+                        :list 1
+                        :vector 1
+                        :set 2
+                        :map 1
+                        0)]
+          (prn "left-or-up: up-tag:" up-tag)
+          (if-not moving-up
+            ; can't go up, ran out of expression
+            [total-up nil]
+            (recur moving-up (+ total-up up-size))))))))
+
 (defn length-before
+  "Given a zloc, find the amount of printing space before it on its
+  current line."
+  [zloc]
+  (loop [ploc (zprint.zutil/left* zloc)
+         indent-before 0]
+    (if-not ploc
+      indent-before
+      ; we assume we have a ploc
+      (let [zstr (if ploc (zstring ploc) "")
+            length-right-of-newline (length-after-newline zstr)
+            [up-size next-zloc] (left-or-up ploc)]
+        (prn "length-before: (nil? ploc):" (nil? ploc)
+             "zstr:" zstr
+             "up-size:" up-size
+             "length-right-of-newline:" length-right-of-newline
+             "(tag ploc):" (zprint.zutil/tag ploc)
+             "ploc:" (zstring ploc))
+        (if length-right-of-newline
+          ; hit a newline
+          (+ length-right-of-newline indent-before)
+          (recur next-zloc (+ indent-before (count zstr) up-size)))))))
+
+(defn length-before-alt
   "Given a zloc, find the amount of printing space before it on its
   current line."
   [zloc]
@@ -2501,36 +2549,35 @@
     (prn "length-before: index:" index
          "ploc:" (zstring ploc)
          "tag:" (zprint.zutil/tag ploc))
-    (if-not ploc
-      indent-before
-      (let [next-left (zprint.zutil/left* ploc)
-            moving-up (when-not next-left (zprint.zutil/up* ploc))
-            up-tag (when moving-up (zprint.zutil/tag moving-up))
-            up-size (case up-tag
-                      :list 1
-                      :vector 1
-                      :set 2
-                      0)
-            at-newline? (when-not (zero? index) (at-newline? ploc))
-            zstr (if (zero? index) "" (zstring ploc))
-            length-right-of-newline (length-after-newline zstr)]
-        (prn "length-before: nil? next-left:" (nil? next-left)
-	     "moving-up:" (zstring moving-up)
-	     "up-tag:" up-tag
-             "at-newline?:" at-newline?
-             "zstr:" zstr
-             "length-right-of-newline:" length-right-of-newline)
-        (if at-newline?
-          indent-before
-          (if length-right-of-newline
-            (+ length-right-of-newline indent-before)
-            (recur (if next-left
-                     next-left
-                     (->> ploc
-                          zprint.zutil/up*
-                          zprint.zutil/left*))
-                   (+ indent-before (count zstr) up-size)
-                   (inc index))))))))
+    (let [next-left (zprint.zutil/left* ploc)
+          moving-up (when-not next-left (zprint.zutil/up* ploc))
+          up-tag (when moving-up (zprint.zutil/tag moving-up))
+          up-size (case up-tag
+                    :list 1
+                    :vector 1
+                    :set 2
+                    :map 1
+                    0)
+          at-newline? (when-not (zero? index) (at-newline? ploc))
+          zstr (if (zero? index) "" (zstring ploc))
+          length-right-of-newline (length-after-newline zstr)]
+      (prn "length-before: nil? next-left:" (nil? next-left)
+           "moving-up:" (zstring moving-up)
+           "up-tag:" up-tag
+           "at-newline?:" at-newline?
+           "zstr:" zstr
+           "length-right-of-newline:" length-right-of-newline)
+      (if (or at-newline? (and (not next-left) (not moving-up)))
+        indent-before
+        (if length-right-of-newline
+          (+ length-right-of-newline indent-before)
+          (recur (if next-left
+                   next-left
+                   (->> ploc
+                        zprint.zutil/up*
+                        zprint.zutil/left*))
+                 (+ indent-before (count zstr) up-size)
+                 (inc index)))))))
 
 (defn next-actual
   "Return the next actual element, ignoring comments and whitespace
