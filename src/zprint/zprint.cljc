@@ -2745,8 +2745,8 @@
                   ; we will probably care about fitting someday.
                   fit? (<= (+ cur-ind len) width)
                   ; If we don't care about fit, then don't do this!!
-                  newline-before?
-                    (and (not newline?) (not fit?) (not beginning?))
+                  newline-before? nil
+                    #_(and (not newline?) (not fit?) (not beginning?))
                   ; What are we doint about :indent from indent-shift?
                   newline-after? comment?
                   new-ind (cond (or newline-after? newline?) actual-indent
@@ -2887,6 +2887,11 @@
   about the indent, based on the previous fn-type (if any) and 
   the actual spacing in the incoming lines."
   [caller l-str r-str options ind zloc fn-style arg-1-indent]
+  (dbg-pr options
+          "fzprint-indent: caller:" caller
+          "ind:" ind
+          "fn-style:" fn-style
+          "arg-1-indent:" arg-1-indent)
   (let [flow-indent (:indent (caller options))
         l-str-len (count l-str)
         actual-ind (+ ind l-str-len)
@@ -2895,11 +2900,11 @@
         coll-print (fzprint-seq options ind zloc-seq)
         _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
         already-hung? (hang-zloc? (first zloc-seq))
-	#_(and (> (count coll-print) 3)
-                           (let [third-type (nth (first (nth coll-print 2)) 2)]
-                             (or (= third-type :comment)
-                                 (= third-type :newline)
-                                 (= third-type :comment-inline))))
+        #_(and (> (count coll-print) 3)
+               (let [third-type (nth (first (nth coll-print 2)) 2)]
+                 (or (= third-type :comment)
+                     (= third-type :newline)
+                     (= third-type :comment-inline))))
         raw-indent (if (and arg-1-indent already-hung? #_(hang-indent fn-style))
                      arg-1-indent
                      flow-indent)
@@ -2908,7 +2913,7 @@
                   "fzprint-indent:" (zstring zloc)
                   "ind:" ind
                   "fn-style:" fn-style
-		  "already-hung?:" already-hung?
+                  "already-hung?:" already-hung?
                   "arg-1-indent:" arg-1-indent
                   "l-str-len:" (count l-str)
                   "actual-ind:" actual-ind
@@ -3056,6 +3061,7 @@
         indent (if (body-set fn-style) indent (or indent-arg indent))
         indent (+ indent (dec l-str-len))
         one-line-ok? (allow-one-line? options len fn-style)
+	one-line-ok? (when-not indent-only? one-line-ok?) 
         ; remove -body from fn-style if it was there
         fn-style (or (body-map fn-style) fn-style)
         ; All styles except :hang, :flow, and :flow-body need three
