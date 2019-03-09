@@ -2897,9 +2897,11 @@
           "arg-1-indent:" arg-1-indent)
   (let [flow-indent (:indent (caller options))
         l-str-len (count l-str)
-        flow-indent (if (> flow-indent l-str-len)
-                      (if arg-1-indent flow-indent (dec flow-indent))
-                      flow-indent)
+        flow-indent
+          (if (and (> flow-indent l-str-len) (= caller :list))
+	    ; If we don't think this could be a fn, indent minimally
+            (if arg-1-indent flow-indent l-str-len #_(dec flow-indent))
+            flow-indent)
         actual-ind (+ ind l-str-len)
         #_(- raw-indent l-str-len)
         zloc-seq (zmap identity zloc)
