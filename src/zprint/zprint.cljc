@@ -2475,7 +2475,7 @@
   [zloc]
   (loop [nloc zloc
          index 0]
-    (prn "next-newline:" (zstring nloc) "tag:" (zprint.zutil/tag nloc))
+    #_(prn "next-newline:" (zstring nloc) "tag:" (zprint.zutil/tag nloc))
     (let [next-right (zprint.zutil/right* nloc)]
       (if next-right
         (if (at-newline? nloc)
@@ -2499,7 +2499,7 @@
   [zloc]
   (loop [ploc zloc
          total-up 0]
-    (prn "left-or-up: ploc:" (zstring ploc) "total-up:" total-up)
+    #_(prn "left-or-up: ploc:" (zstring ploc) "total-up:" total-up)
     (let [next-left (zprint.zutil/left* ploc)]
       (if next-left
         [total-up next-left]
@@ -2512,7 +2512,7 @@
                         :set 2
                         :map 1
                         0)]
-          (prn "left-or-up: up-tag:" up-tag)
+          #_(prn "left-or-up: up-tag:" up-tag)
           (if-not moving-up
             ; can't go up, ran out of expression
             [total-up nil]
@@ -2530,7 +2530,7 @@
       (let [zstr (if ploc (zstring ploc) "")
             length-right-of-newline (length-after-newline zstr)
             [up-size next-zloc] (left-or-up ploc)]
-        (prn "length-before: (nil? ploc):" (nil? ploc)
+        #_(prn "length-before: (nil? ploc):" (nil? ploc)
              "zstr:" zstr
              "up-size:" up-size
              "length-right-of-newline:" length-right-of-newline
@@ -2605,7 +2605,7 @@
   the incoming zloc was hung and we should do the same."
   [zloc]
   (let [[count-prior-to-newline newline] (next-newline zloc)]
-    (prn "hang-zloc?: count-prior...:" count-prior-to-newline
+    #_(prn "hang-zloc?: count-prior...:" count-prior-to-newline
             "zloc:" (zstring zloc))
     (if (< count-prior-to-newline 1)
       false
@@ -2616,7 +2616,7 @@
             second-indent (length-before second-element)
 	    third-element (next-actual second-element)
             third-indent (length-before third-element)]
-        (prn "hang-zloc?: second-element:" (zstring second-element)
+        #_(prn "hang-zloc?: second-element:" (zstring second-element)
              "second-indent:" second-indent
              "third-element:" (zstring third-element)
 	     "third-tag:" (zprint.zutil/tag third-element)
@@ -2685,7 +2685,6 @@
   [caller
    {:keys [width rightcnt], {:keys [wrap-after-multi?]} caller, :as options} ind
    actual-ind coll-print indent]
-  #_(prn "iz:" coll-print)
   (let [coll-print (merge-fzprint-seq coll-print)
         last-index (dec (count coll-print))
         rightcnt (fix-rightcnt rightcnt)
@@ -2864,7 +2863,7 @@
   [newline-vec]
   (let [starts-with-nl-vec (mapv #(clojure.string/starts-with? (first %) "\n")
                              newline-vec)
-	_ (println "starts-with-nl-vec" starts-with-nl-vec)
+	#_(println "starts-with-nl-vec" starts-with-nl-vec)
         true-seq (distinct starts-with-nl-vec)]
     (and (= (count true-seq) 1) (= (first true-seq) true))))
 
@@ -2945,7 +2944,6 @@
 ;;
 ;; # Utilities to modify list printing in various ways
 ;;
-
 
 ;;
 ;; Which fn-styles use :list {:indent n} instead of

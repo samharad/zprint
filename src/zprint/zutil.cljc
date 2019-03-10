@@ -90,28 +90,30 @@
   #?(:clj z/string
      :cljs zb/string))
 
-#_(def tag
+(def tag
   #?(:clj z/tag
      :cljs zb/tag))
 
-(defn tag
+; indent-only
+#_(defn tag
   [zloc]
   (let [t (z/tag zloc)] (if @nl-to-comment? (if (= t :newline) :comment t) t)))
-
+ 
 (def skip
   #?(:clj z/skip
      :cljs zw/skip))
 
-#_(def skip-whitespace
+(def skip-whitespace
   #?(:clj z/skip-whitespace
      :cljs zw/skip-whitespace))
 
-#_(def whitespace?
+(def whitespace?
   #?(:clj z/whitespace?
      :cljs zw/whitespace?))
 
 ;; FIX THIS
-(defn whitespace?
+; indent-only
+#_(defn whitespace?
   [zloc]
   (if @nl-to-comment?
     (or (= (tag zloc) :whitespace) (= (tag zloc) :comma))
@@ -119,7 +121,8 @@
         (= (tag zloc) :newline)
         (= (tag zloc) :comma))))
 
-(defn skip-whitespace
+; indent-only
+#_(defn skip-whitespace
   ([zloc] (skip-whitespace z/right zloc))
   ([f zloc] (skip f whitespace? zloc)))
 
@@ -188,6 +191,12 @@
   (= (tag zloc) :namespaced-map))
 
 (defn zcomment?
+  "Returns true if this is a comment."
+  [zloc]
+  (when zloc (= (tag zloc) :comment)))
+
+; indent-only
+#_(defn zcomment?
   "Returns true if this is a comment."
   [zloc]
   (when zloc
@@ -324,6 +333,7 @@
                (conj out result)
                out)))))
 
+; Appears to be unused
 (defn zmap-all
   "Return a vector containing the return of applying a function to 
   every zloc inside of zloc."

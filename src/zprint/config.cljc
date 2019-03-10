@@ -559,6 +559,10 @@
                                                       {:list {:hang? true}}],
                                            ":require" :flow},
                                   :list {:hang? false, :indent-arg 1}}]}},
+      :indent-only {:list {:indent-only? true}
+                    :map {:indent-only? true}
+		    :set {:indent-only? true}
+		    :vector {:indent-only? true}}
       :justified {:binding {:justify? true},
                   :map {:justify? true},
                   :pair {:justify? true}},
