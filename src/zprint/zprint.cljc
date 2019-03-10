@@ -2668,15 +2668,20 @@
 (declare merge-fzprint-seq)
 
 (defn indent-zmap
-  "Given the output from fzprint-seq, which is a style-vec in the
-  making without spacing, but with extra [] around the elements.
-  At present this will wrap elements with respect to the right
-  margin, though it certainly could be fixed to no do so (and
-  probably should) do so.  When we get a newline, replace any spaces
-  after it with our own, and that would be to bring it to ind +
-  indent.  Everything is based off of ind, and we know nothing to
-  the left of that.  ind must be the left end of everything, not
-  the right of l-str!  The actual-ind is to the right of l-str."
+  "Implement :indent-only?.  This routine is the central one through
+  which all :indent-only? processing flows, and replaces all of the
+  detailed logic in fzprint-list*, fzprint-vec*, and fzprint-map*.
+  This is called directly by fzprint-vec*, which handles both vectors
+  and sets, and through fzprint-indent by fzprint-list* and
+  fzprint-map*.  Thus, all of the data structures get their
+  :indent-only? processing handled by ident-zmap.  coll-print is
+  the output from fzprint-seq, which is a style-vec in the making
+  without spacing, but with extra [] around the elements.  Everything
+  is based off of ind, and we know nothing to the left of that.
+  ind must be the left end of everything, not the right of l-str!
+  The actual-ind is to the right of l-str.  When we get a newline,
+  replace any spaces after it with our own, and that would be to
+  bring it to ind + indent.  "
   [caller
    {:keys [width rightcnt], {:keys [wrap-after-multi?]} caller, :as options} ind
    actual-ind coll-print indent]
@@ -2686,11 +2691,11 @@
         rightcnt (fix-rightcnt rightcnt)
         actual-indent (+ ind indent)]
     (dbg-pr options
-         "indent-zmap: ind:" ind
-         "actual-ind:" actual-ind
-         "indent:" indent
-         "actual-indent:" actual-indent
-	 "coll-print:" coll-print)
+            "indent-zmap: ind:" ind
+            "actual-ind:" actual-ind
+            "indent:" indent
+            "actual-indent:" actual-indent
+            "coll-print:" coll-print)
     (loop [cur-seq coll-print
            cur-ind actual-ind
            index 0
@@ -2749,7 +2754,7 @@
                   fit? (<= (+ cur-ind len) width)
                   ; If we don't care about fit, then don't do this!!
                   newline-before? nil
-                    #_(and (not newline?) (not fit?) (not beginning?))
+                  #_(and (not newline?) (not fit?) (not beginning?))
                   ; What are we doint about :indent from indent-shift?
                   newline-after? comment?
                   new-ind (cond (or newline-after? newline?) actual-indent
@@ -2834,8 +2839,6 @@
                                              this-seq)))))))))))))
 
 
-
-
 ; TODO: Fix these, they both need a lot of work
 ; Do we really need both, or just figure out the hang
 ; ones?
@@ -2879,16 +2882,18 @@
           fzprint-seq-vec)))
 
 (defn fzprint-indent
-  "This function takes a zloc and the ind, which is where we are
-  on the line this point, and assumes that we have new-lines in the
-  zloc.  Of course we have to have all of the white space in the
-  zloc too, since we need to ask some questions about what we are
-  starting with at some point.  We don't add newlines and we let
-  the newlines that are in there do their thing.  We might add
-  newlines if we move beyond the right margin, but for now, we
-  don't (well, we do actually).  This routine has to make decisions 
-  about the indent, based on the previous fn-type (if any) and 
-  the actual spacing in the incoming lines."
+  "This function assumes that :indent-only? was set for the caller
+  in the options (since anything else doesn't make sense).  It takes
+  a zloc and the ind, which is where we are on the line this point,
+  and will process the zloc to include any newlines.  Of course we
+  have to have all of the white space in the zloc too, since we
+  need to ask some questions about what we are starting with at
+  some point.  We don't add newlines and we let the newlines that
+  are in there do their thing.  We might add newlines if we move
+  beyond the right margin, but for now, we don't (and it isn't
+  entirely clear how or if that would work).  This routine has to
+  make decisions about the indent, that is whether to hang or flow
+  the expression. It does that based on what was done in the input."
   [caller l-str r-str options ind zloc fn-style arg-1-indent]
   (dbg-pr options
           "fzprint-indent: caller:" caller
@@ -2899,12 +2904,12 @@
         l-str-len (count l-str)
         flow-indent
           (if (and (> flow-indent l-str-len) (= caller :list))
-	    ; If we don't think this could be a fn, indent minimally
+            ; If we don't think this could be a fn, indent minimally
             (if arg-1-indent flow-indent l-str-len #_(dec flow-indent))
             flow-indent)
         actual-ind (+ ind l-str-len)
         #_(- raw-indent l-str-len)
-        zloc-seq (zmap identity zloc)
+        zloc-seq (zmap-w-nl identity zloc)
         coll-print (fzprint-seq options ind zloc-seq)
         _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
         already-hung? (hang-zloc? (first zloc-seq))
@@ -3589,8 +3594,9 @@
           #_(+ indent ind)
           ;         new-ind (+ (count l-str) ind)
           _ (dbg-pr options "fzprint-vec*:" (zstring zloc) "new-ind:" new-ind)
-          zloc-seq
-            (if respect-nl? (zmap-w-nl identity zloc) (zmap identity zloc))
+          zloc-seq (if (or respect-nl? indent-only?)
+                     (zmap-w-nl identity zloc)
+                     (zmap identity zloc))
           zloc-seq (if (and sort?
                             (if in-code? sort-in-code? true)
                             (not respect-nl?)
@@ -3611,7 +3617,9 @@
                          ; This causes single line things to also respect-nl
                          ; when it is enabled.  Could be separately controlled
                          ; instead of with :respect-nl? if desired.
-                         (if respect-nl? coll-print (remove-nl coll-print)))))
+                         (if (or respect-nl? indent-only?)
+                           coll-print
+                           (remove-nl coll-print)))))
           _ (log-lines options "fzprint-vec*:" new-ind one-line)
           _ (dbg-pr options
                     "fzprint-vec*: new-ind:" new-ind
@@ -3737,7 +3745,7 @@
             lift-ns-in-code? respect-nl? indent-only? indent]}
       caller,
     :as options} ind zloc]
-  (if respect-nl?
+  (if indent-only?
     (let [options (assoc options :map-depth (inc map-depth))
           l-str-vec [[l-str (zcolor-map options l-str) :left]]
           r-str-vec (rstr-vec options (+ indent ind) zloc r-str)]
@@ -4305,7 +4313,9 @@
           (zreader-macro? zloc) (fzprint-reader-macro options indent zloc)
           ; This is needed to not be there for newlines in parse-string-all,
           ; but is needed for respect-nl? support.
-          (and (= (ztag zloc) :newline) (> depth 0)) [["\n" :none :newline]]
+          ;(and (= (ztag zloc) :newline) (> depth 0)) [["\n" :none :newline]]
+          (and (= (ztag zloc) :newline) (> depth 0)) 
+	    (fzprint-newline options indent zloc)
           :else
             (let [zstr (zstring zloc)
                   overflow-in-hang?
@@ -4315,6 +4325,7 @@
 		(and (zcomment? zloc) 
 		     #_(not (clojure.string/starts-with? ";" zstr))
 		     (not (some #{\;} zstr)))
+		  ; We should remvoe them when we get zutil fixed.
 	          (fzprint-newline options indent zloc)
                 (zcomment? zloc)
                   (let [zcomment
