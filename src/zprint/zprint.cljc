@@ -2493,6 +2493,17 @@
         nl-num (dec (count nl-split))]
     (when-not (zero? nl-num) (dec (count (last nl-split))))))
 
+(defn tag-l-size
+  "Given a tag from rewrite-clj, return the size the l-str."
+  [t]
+  (case t
+    :list 1
+    :vector 1
+    :set 2
+    :map 1
+    :uneval 2
+    0))
+
 (defn left-or-up
   "Take a zloc and move left if possible, or move up if necessary.
   Return a vector with [up-size new-zloc]"
@@ -2506,12 +2517,7 @@
         ; can't go left, what about up?
         (let [moving-up (zprint.zutil/up* ploc)
               up-tag (when moving-up (zprint.zutil/tag moving-up))
-              up-size (case up-tag
-                        :list 1
-                        :vector 1
-                        :set 2
-                        :map 1
-                        0)]
+              up-size (tag-l-size up-tag)]
           #_(prn "left-or-up: up-tag:" up-tag)
           (if-not moving-up
             ; can't go up, ran out of expression
@@ -2522,24 +2528,26 @@
   "Given a zloc, find the amount of printing space before it on its
   current line."
   [zloc]
-  (loop [ploc (zprint.zutil/left* zloc)
-         indent-before 0]
-    (if-not ploc
-      indent-before
-      ; we assume we have a ploc
-      (let [zstr (if ploc (zstring ploc) "")
-            length-right-of-newline (length-after-newline zstr)
-            [up-size next-zloc] (left-or-up ploc)]
-        #_(prn "length-before: (nil? ploc):" (nil? ploc)
-             "zstr:" zstr
-             "up-size:" up-size
-             "length-right-of-newline:" length-right-of-newline
-             "(tag ploc):" (zprint.zutil/tag ploc)
-             "ploc:" (zstring ploc))
-        (if length-right-of-newline
-          ; hit a newline
-          (+ length-right-of-newline indent-before)
-          (recur next-zloc (+ indent-before (count zstr) up-size)))))))
+  (let [[up-size next-zloc] (left-or-up zloc)]
+    (loop [ploc next-zloc
+           indent-before up-size]
+      (if-not ploc
+        indent-before
+        ; we assume we have a ploc
+        (let [zstr (if ploc (zstring ploc) "")
+              length-right-of-newline (length-after-newline zstr)
+              [up-size next-zloc] (left-or-up ploc)]
+          #_(prn "length-before: (nil? ploc):" (nil? ploc)
+                 "zstr:" zstr
+                 "up-size:" up-size
+                 "length-right-of-newline:" length-right-of-newline
+                 "(tag ploc):" (zprint.zutil/tag ploc)
+                 "ploc:" (zstring ploc)
+                 "next-zloc:" (zstring next-zloc))
+          (if length-right-of-newline
+            ; hit a newline
+            (+ length-right-of-newline indent-before)
+            (recur next-zloc (+ indent-before (count zstr) up-size))))))))
 
 (defn length-before-alt
   "Given a zloc, find the amount of printing space before it on its
@@ -2606,7 +2614,7 @@
   [zloc]
   (let [[count-prior-to-newline newline] (next-newline zloc)]
     #_(prn "hang-zloc?: count-prior...:" count-prior-to-newline
-            "zloc:" (zstring zloc))
+         "zloc:" (zstring zloc))
     (if (< count-prior-to-newline 1)
       false
       (let [second-element (zprint.zutil/zrightnws
@@ -2614,14 +2622,14 @@
                                (zprint.zutil/zrightnws zloc)
                                zloc))
             second-indent (length-before second-element)
-	    third-element (next-actual second-element)
+            third-element (next-actual second-element)
             third-indent (length-before third-element)]
         #_(prn "hang-zloc?: second-element:" (zstring second-element)
              "second-indent:" second-indent
              "third-element:" (zstring third-element)
-	     "third-tag:" (zprint.zutil/tag third-element)
+             "third-tag:" (zprint.zutil/tag third-element)
              "third-indent:" third-indent)
-        (= second-indent third-indent)))))
+        (and second-element third-element (= second-indent third-indent))))))
 
 (defn indent-shift
   "Take a style-vec that was once output from indent-zmap, and fix
@@ -3063,7 +3071,14 @@
         ; **** NOTE: The options map can change here, and if it does,
         ; some of the things found in it above would have to change too!
         options
-          (if (vector? fn-style) (merge-deep options (second fn-style)) options)
+          ; The config-and-validate allows us to use :style in the options
+          ; map associated with a function
+          (if (vector? fn-style)
+            (first (zprint.config/config-and-validate "fn-style:"
+                                                      nil
+                                                      options
+                                                      (second fn-style)))
+            options)
         fn-style (if (vector? fn-style) (first fn-style) fn-style)
         ; Get indents which might have changed if the options map was
         ; re-written by the function style being a vector.
@@ -3074,7 +3089,7 @@
         indent (if (body-set fn-style) indent (or indent-arg indent))
         indent (+ indent (dec l-str-len))
         one-line-ok? (allow-one-line? options len fn-style)
-	one-line-ok? (when-not indent-only? one-line-ok?) 
+        one-line-ok? (when-not indent-only? one-line-ok?)
         ; remove -body from fn-style if it was there
         fn-style (or (body-map fn-style) fn-style)
         ; All styles except :hang, :flow, and :flow-body need three
@@ -3125,21 +3140,21 @@
         l-str-vec [[l-str (zcolor-map options l-str) :left]]
         r-str-vec (rstr-vec options (+ indent ind) zloc r-str)
         _ (dbg options
-		 "fzprint-list*:" (zstring zloc)
-		 "fn-str" fn-str
-		 "fn-style:" fn-style
-		 "ind:" ind
-		 "indent:" indent
-		 "default-indent:" default-indent
-		 "one-line-ok?" one-line-ok?
-		 "arg-1-coll?" arg-1-coll?
-		 "arg-1-indent:" arg-1-indent
-		 "l-str:" (str "'" l-str "'")
-		 "indent-adj:" indent-adj
-		 "len:" len
-		 "one-line?:" one-line?
-		 "indent-only?:" indent-only?
-		 "rightcnt:" (:rightcnt options))
+               "fzprint-list*:" (zstring zloc)
+               "fn-str" fn-str
+               "fn-style:" fn-style
+               "ind:" ind
+               "indent:" indent
+               "default-indent:" default-indent
+               "one-line-ok?" one-line-ok?
+               "arg-1-coll?" arg-1-coll?
+               "arg-1-indent:" arg-1-indent
+               "l-str:" (str "'" l-str "'")
+               "indent-adj:" indent-adj
+               "len:" len
+               "one-line?:" one-line?
+               "indent-only?:" indent-only?
+               "rightcnt:" (:rightcnt options))
         one-line (if (zero? len)
                    :empty
                    (when one-line-ok?

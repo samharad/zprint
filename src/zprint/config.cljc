@@ -842,7 +842,7 @@
   (reset! configured-options default-zprint-options)
   (reset! explained-options default-zprint-options))
 
-(defn get-options "Return any prevsiouly set options." [] @configured-options)
+(defn get-options "Return any previously set options." [] @configured-options)
 
 (defn get-default-options
   "Return the base default options."
