@@ -2494,7 +2494,12 @@
     (when-not (zero? nl-num) (dec (count (last nl-split))))))
 
 (defn tag-l-size
-  "Given a tag from rewrite-clj, return the size the l-str."
+  "Given a tag into which you can go down from rewrite-clj, which must be
+  a collection of some kind, return the size the l-str.  All of the tag
+  values into which you can go down must be in this list for indent-before
+  to work correctly.  It uses these values when it steps up out of one of
+  these things to see how big the thing would have been if it showed up
+  as characters."
   [t]
   (case t
     :list 1
@@ -2502,6 +2507,14 @@
     :set 2
     :map 1
     :uneval 2
+    :reader-macro 1
+    :meta 1
+    :quote 1
+    :syntax-quote 1
+    :fn 2
+    :unquote 1
+    :deref 1
+    :namespaced-map 1
     0))
 
 (defn left-or-up
@@ -2549,46 +2562,6 @@
             (+ length-right-of-newline indent-before)
             (recur next-zloc (+ indent-before (count zstr) up-size))))))))
 
-(defn length-before-alt
-  "Given a zloc, find the amount of printing space before it on its
-  current line."
-  [zloc]
-  (loop [ploc zloc
-         indent-before 0
-         index 0]
-    (prn "length-before: index:" index
-         "ploc:" (zstring ploc)
-         "tag:" (zprint.zutil/tag ploc))
-    (let [next-left (zprint.zutil/left* ploc)
-          moving-up (when-not next-left (zprint.zutil/up* ploc))
-          up-tag (when moving-up (zprint.zutil/tag moving-up))
-          up-size (case up-tag
-                    :list 1
-                    :vector 1
-                    :set 2
-                    :map 1
-                    0)
-          at-newline? (when-not (zero? index) (at-newline? ploc))
-          zstr (if (zero? index) "" (zstring ploc))
-          length-right-of-newline (length-after-newline zstr)]
-      (prn "length-before: nil? next-left:" (nil? next-left)
-           "moving-up:" (zstring moving-up)
-           "up-tag:" up-tag
-           "at-newline?:" at-newline?
-           "zstr:" zstr
-           "length-right-of-newline:" length-right-of-newline)
-      (if (or at-newline? (and (not next-left) (not moving-up)))
-        indent-before
-        (if length-right-of-newline
-          (+ length-right-of-newline indent-before)
-          (recur (if next-left
-                   next-left
-                   (->> ploc
-                        zprint.zutil/up*
-                        zprint.zutil/left*))
-                 (+ indent-before (count zstr) up-size)
-                 (inc index)))))))
-
 (defn next-actual
   "Return the next actual element, ignoring comments and whitespace
   and everything else but real elements."
@@ -2610,12 +2583,14 @@
   itself.  The criteria are: If there is a newline after the second
   thing in the zloc, and the amount of space prior to the third thing
   is the same as the amount of space prior to the second thing, then
-  the incoming zloc was hung and we should do the same."
+  the incoming zloc was hung and we should do the same. Of course, it
+  would also only be hung if the second thing was on the same line as
+  the first thing."
   [zloc]
   (let [[count-prior-to-newline newline] (next-newline zloc)]
     #_(prn "hang-zloc?: count-prior...:" count-prior-to-newline
          "zloc:" (zstring zloc))
-    (if (< count-prior-to-newline 1)
+    (if (< count-prior-to-newline 2)
       false
       (let [second-element (zprint.zutil/zrightnws
                              (if (zprint.zutil/whitespace? zloc)
@@ -2624,7 +2599,7 @@
             second-indent (length-before second-element)
             third-element (next-actual second-element)
             third-indent (length-before third-element)]
-        #_(prn "hang-zloc?: second-element:" (zstring second-element)
+        (prn "hang-zloc?: second-element:" (zstring second-element)
              "second-indent:" second-indent
              "third-element:" (zstring third-element)
              "third-tag:" (zprint.zutil/tag third-element)
@@ -2766,26 +2741,7 @@
                   newline-after? comment?
                   new-ind (cond (or newline-after? newline?) actual-indent
                                 newline-before? (+ actual-indent len)
-                                :else (+ cur-ind 1 len))
-                  #_(cond (or (= (nth (first this-seq) 2) :comment)
-                              (= (nth (first this-seq) 2) :comment-inline))
-                            ; Force a newline by exceeding the width
-                            (inc width)
-                          (and multi? (> linecnt 1) (not wrap-after-multi?))
-                            (inc width)
-                          fit? (+ cur-ind len 1)
-                          newline? actual-indent
-                          :else (+ ind len 1))
-                  ; Fix up any existing indents to be correct in the current
-                  ; context.
-                  ;
-                  ; But I think this was done in indent-shift, so let's try
-                  ; and avoid that here
-                  #_this-seq
-                  #_(if (and (not multi?) (= (nth (first this-seq) 2) :indent))
-                      [[(str (first (first this-seq)) (blanks len))
-                        (second (first this-seq)) (nth (first this-seq) 2)]]
-                      this-seq)]
+                                :else (+ cur-ind 1 len))]
               (dbg-pr
                 options
                 "------ this-seq:" this-seq
@@ -2857,14 +2813,6 @@
     :arg1-force-nl :gt2-force-nl :gt3-force-nl :flow :flow-body :force-nl-body
     :force-nl})
 
-#_(defn newline-seq?
-  "Given a vector of vectors, decide if we should merge these individually
-  into the top level vector."
-  [newline-vec]
-  (let [type-vec (mapv #(nth % 2) newline-vec)
-        type-vec (distinct type-vec)]
-    (and (= (count type-vec) 1) (= (first type-vec) :newline))))
-
 (defn newline-seq?
   "Given a vector of vectors, decide if we should merge these individually
   into the top level vector."
@@ -2912,20 +2860,14 @@
         flow-indent
           (if (and (> flow-indent l-str-len) (= caller :list))
             ; If we don't think this could be a fn, indent minimally
-            (if arg-1-indent flow-indent l-str-len #_(dec flow-indent))
+            (if arg-1-indent flow-indent l-str-len)
             flow-indent)
         actual-ind (+ ind l-str-len)
-        #_(- raw-indent l-str-len)
         zloc-seq (zmap-w-nl identity zloc)
         coll-print (fzprint-seq options ind zloc-seq)
         _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
         already-hung? (hang-zloc? (first zloc-seq))
-        #_(and (> (count coll-print) 3)
-               (let [third-type (nth (first (nth coll-print 2)) 2)]
-                 (or (= third-type :comment)
-                     (= third-type :newline)
-                     (= third-type :comment-inline))))
-        raw-indent (if (and arg-1-indent already-hung? #_(hang-indent fn-style))
+        raw-indent (if (and arg-1-indent already-hung?)
                      arg-1-indent
                      flow-indent)
         indent raw-indent
@@ -3772,7 +3714,7 @@
                                        ind
                                        zloc
                                        nil ;fn-style
-                                       nil) ;arg-1-indent
+                                       nil) ;arg-1-indent, will prevent hang
                        r-str-vec)))
     (let [options (assoc options :map-depth (inc map-depth))
           zloc (if (and (= ztype :sexpr) (or key-ignore key-ignore-silent))
@@ -4253,11 +4195,12 @@
   "The pretty print part of fzprint."
   [{:keys [width rightcnt fn-map hex? shift-seq dbg? dbg-print? in-hang?
            one-line? string-str? string-color depth max-depth trim-comments?
-           in-code? max-hang-depth max-hang-span max-hang-count],
+           in-code? max-hang-depth max-hang-span max-hang-count reset],
     :as options} indent zloc]
   (let [avail (- width indent)
         ; note that depth affects how comments are printed, toward the end
         options (assoc options :depth (inc depth))
+	options (if reset (dissoc (merge-deep options reset) :reset) options)
         options (if (or dbg? dbg-print?)
                   (assoc options
                     :dbg-indent (str (get options :dbg-indent "")

@@ -520,7 +520,7 @@
             :extend {:modifiers nil}},
    :return-cvec? false,
    :search-config? false,
-   :set {:indent 1,
+   :set {:indent 2,
 	 :indent-only? false
 	 :respect-nl? false
          :sort? true,
@@ -560,7 +560,7 @@
                                            ":require" :flow},
                                   :list {:hang? false, :indent-arg 1}}]}},
       :indent-only {:list {:indent-only? true}
-                    :map {:indent-only? true}
+                    :map {:indent-only? true :indent 1}
 		    :set {:indent-only? true}
 		    :vector {:indent-only? true}}
       :justified {:binding {:justify? true},

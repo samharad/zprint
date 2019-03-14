@@ -252,6 +252,7 @@
 (s/def ::remove
   (only-keys :opt-un [::fn-force-nl ::fn-gt2-force-nl ::fn-gt3-force-nl
                       :alt/extend]))
+(s/def ::reset zany?)
 (s/def ::return-cvec? ::boolean)
 (s/def ::set
   (only-keys :opt-un [::indent ::indent-only? ::respect-nl? ::sort?
@@ -292,7 +293,7 @@
              ::max-hang-span ::max-length ::object ::old? ::output ::pair
              ::pair-fn ::parallel? ::parse ::parse-string-all? ::parse-string?
              ::perf-vs-format ::process-bang-zprint? ::promise ::reader-cond
-             ::record ::remove ::return-cvec? ::search-config? ::set ::spaces?
+             ::record ::remove ::reset ::return-cvec? ::search-config? ::set ::spaces?
              ::spec ::style ::style-map ::tab ::trim-comments? ::tuning
              :alt/uneval ::user-fn-map ::vector ::version ::width ::zipper?]))
 
