@@ -7,14 +7,14 @@
     [zprint.finish :refer [newline-vec]]
     [zprint.zfns :refer
      [zstring znumstr zbyte-array? zcomment? zsexpr zseqnws zmap-right
-      zfocus-style zfirst zfirst-no-comment zsecond zthird zfourth znthnext
+      zfocus-style zfirst zfirst-no-comment zsecond zsecond-no-comment zthird zfourth znthnext
       zcount zmap zanonfn? zfn-obj? zfocus zfind-path zwhitespace? zlist?
       zvector? zmap? zset? zcoll? zuneval? zmeta? ztag zlast zarray? zatom?
       zderef zrecord? zns? zobj-to-vec zexpandarray znewline?
       zwhitespaceorcomment? zmap-all zpromise? zfuture? zdelay? zkeyword?
       zconstant? zagent? zreader-macro? zarray-to-shift-seq zdotdotdot zsymbol?
       znil? zreader-cond-w-symbol? zreader-cond-w-coll? zlift-ns zinlinecomment?
-      zfind zmap-w-nl ztake-append znamespacedmap?]]
+      zfind zmap-w-nl ztake-append znextnws-w-nl znamespacedmap?]]
     [zprint.ansi :refer [color-str]]
     [zprint.config :refer [validate-options merge-deep]]
     [zprint.zutil :refer [add-spec-to-docstring]]
@@ -653,8 +653,14 @@
   fzprint-? function to use with zloc.  Callers need to know whether this
   was hang or flow, so it returns [{:hang | :flow} style-vec] all the time."
   [options hindent findent fzfn zloc]
-  (dbg options "fzprint-hang-unless-fail:" (zstring (zfirst zloc)))
-  (let [hanging (fzfn (in-hang options) hindent zloc)]
+  (dbg options
+       "fzprint-hang-unless-fail: hindent:" hindent
+       "findent:" findent
+       "zloc:" (zstring (zfirst zloc)))
+  ; If the hindent is different than the findent, we'll try hang, otherwise 
+  ; we will just do the flow
+  (let [hanging (when (not= hindent findent)
+                  (fzfn (in-hang options) hindent zloc))]
     (dbg-form
       options
       "fzprint-hang-unless-fail: exit:"
@@ -1408,7 +1414,7 @@
 
 (defn fzprint-binding-vec
   [{{:keys [nl-separator?]} :binding, :as options} ind zloc]
-  (dbg options "fzprint-binding-vec:" (zstring (zfirst zloc)))
+  (dbg options "fzprint-binding-vec: ind:" ind "zloc:" (zstring (zfirst zloc)))
   (let [options (rightmost options)
         l-str "["
         r-str "]"
@@ -2456,6 +2462,69 @@
   ([caller options hindent findent zloc fn-style]
    (fzprint-hang-remaining caller options hindent findent zloc fn-style nil)))
 
+;;
+;; # Find out and print what comes before the next element
+;;
+
+(defn newline-or-comment?
+  "Given an zloc, is it a newline or a comment?"
+  [zloc]
+  (when zloc
+    (let [zloc-tag (ztag zloc)]
+      (or (= zloc-tag :newline) (= zloc-tag :comment)))))
+
+(defn up-to-next-zloc
+  "Given a zloc, gather newlines and comments up to the next zloc into a seq.
+  Return [seq next-zloc]"
+  [zloc]
+  (loop [nloc (znextnws-w-nl zloc)
+         out []]
+    (if (not (newline-or-comment? nloc))
+      [out nloc]
+      (recur (znextnws-w-nl nloc) (conj out nloc)))))
+
+(defn fzprint-up-to-next-zloc
+  "Take a current position, and move right, turning any comments and newlines
+  into style-vec elements, and keeping track of the ind while doing so. 
+  Returns [new-ind style-vec next-zloc], where new-ind always has a value,
+  style-vec always has a value (since nil isn't happy), and next-zloc might
+  be nil.  If this works out, then don't use [[\"\" :none :none]] as the
+  style-vec, but make that :none, and fix concat-no-nil to ignore :none."
+  [options hindent findent zloc]
+  (dbg options
+       "fzprint-up-to-next-zloc: hindent:" hindent
+       "findent:" findent
+       "zloc:" (zstring zloc))
+  (let [[zloc-seq next-zloc] (up-to-next-zloc zloc)]
+    (dbg-form
+      options
+      "fzprint-up-to-next-zloc exit:"
+      (if (empty? zloc-seq)
+        [hindent [["" :none :none]] next-zloc]
+        ; By definition, everything in zloc-seq will contain newlines
+        ; either explicit or implicit
+        (let [coll-print (fzprint-seq options findent zloc-seq)
+              ; If we doing flow (which we are), if a hang was possible
+              ; (which we determine by comparing hindent and findent),
+              ; then remove the last :newline, if any.
+              _ (dbg-pr options
+                        "fzprint-up-to-next-zloc: coll-print:"
+                        coll-print)
+              coll-print (if (not= hindent findent)
+                           (if (= (nth (first (last coll-print)) 2) :newline)
+                             (butlast coll-print)
+                             coll-print)
+                           coll-print)
+	      coll-print (if coll-print coll-print [[["" :none :none]]])]
+          [findent
+           (concat-no-nil [[" " :none :none]]
+                          (apply concat-no-nil
+                            (interpose [[(str "\n" (blanks findent)) :none
+                                         :indent]]
+                              coll-print))) next-zloc])))))
+	
+	;(apply concat-no-nil coll-print) next-zloc]))))
+
 
 ;;
 ;; # Indent-only support
@@ -2590,7 +2659,9 @@
   (let [[count-prior-to-newline newline] (next-newline zloc)]
     #_(prn "hang-zloc?: count-prior...:" count-prior-to-newline
          "zloc:" (zstring zloc))
+    ; Are the first two things on the same line?
     (if (< count-prior-to-newline 2)
+      ; no -- then it can't be a hang
       false
       (let [second-element (zprint.zutil/zrightnws
                              (if (zprint.zutil/whitespace? zloc)
@@ -3126,13 +3197,25 @@
                                (fzprint* roptions one-line-ind (zfirst zloc))
                                r-str-vec)
       ; Must have at least two elements, third thru n are optional
-      (and (= fn-style :binding) (> len 1) (zvector? (zsecond zloc)))
-        (let [[hang-or-flow binding-style-vec] (fzprint-hang-unless-fail
+      (and (= fn-style :binding) (> len 1) (zvector? (zsecond-no-comment zloc)))
+        (let [[new-ind pre-binding-style-vec next-zloc]
+	        (fzprint-up-to-next-zloc options 
+		                         arg-1-indent
+					 (+ indent ind)
+					 (znthnext zloc 0))
+	      _ (dbg options "fzprint-list* :binding new-ind:"
+	                     new-ind
+			     "pre-binding-style-vec:"
+			     pre-binding-style-vec
+			     "next-zloc:" (zstring next-zloc)
+			     "zsecond zloc:" (zstring (zsecond zloc)))
+	      [hang-or-flow binding-style-vec] (fzprint-hang-unless-fail
                                                  loptions
-                                                 arg-1-indent
+						 new-ind
+                                                 ;arg-1-indent
                                                  (+ indent ind)
                                                  fzprint-binding-vec
-                                                 (zsecond zloc))
+                                                 next-zloc)
               binding-style-vec (if (= hang-or-flow :hang)
                                   (concat-no-nil [[" " :none :whitespace]]
                                                  binding-style-vec)
@@ -3141,6 +3224,7 @@
             l-str-vec
             ; TODO: get rid of inc ind
             (fzprint* loptions (inc ind) (zfirst zloc))
+	    pre-binding-style-vec
             binding-style-vec
             (if (> len 2)
               (concat-no-nil [[(str "\n" (blanks (+ indent ind))) :none
@@ -3149,7 +3233,9 @@
                              ; will sort it out
                              (fzprint-flow-seq options
                                                (+ indent ind)
-                                               (nthnext (zmap identity zloc) 2)
+					       (zmap-right identity next-zloc)
+					       ; zmap-right is probaby better
+                                               #_(nthnext (zmap identity zloc) 2)
                                                :force-nl)
                              r-str-vec)
               r-str-vec)))

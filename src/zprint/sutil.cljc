@@ -289,8 +289,11 @@
     zprint.zfns/zfirst sfirst
     zprint.zfns/zfirst-no-comment sfirst
     zprint.zfns/zsecond ssecond
+    zprint.zfns/zsecond-no-comment ssecond
     zprint.zfns/zthird sthird
+    zprint.zfns/zthird-no-comment sthird
     zprint.zfns/zfourth sfourth
+    zprint.zfns/znextnws-w-nl next
     zprint.zfns/znthnext snthnext
     zprint.zfns/zcount scount
     zprint.zfns/zmap smap

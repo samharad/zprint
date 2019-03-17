@@ -103,17 +103,17 @@
   #?(:clj z/skip
      :cljs zw/skip))
 
-(def skip-whitespace
+#_(def skip-whitespace
   #?(:clj z/skip-whitespace
      :cljs zw/skip-whitespace))
 
-(def whitespace?
+#_(def whitespace?
   #?(:clj z/whitespace?
      :cljs zw/whitespace?))
 
 ;; FIX THIS
 ; indent-only
-#_(defn whitespace?
+(defn whitespace?
   [zloc]
   (if @nl-to-comment?
     (or (= (tag zloc) :whitespace) (= (tag zloc) :comma))
@@ -122,9 +122,13 @@
         (= (tag zloc) :comma))))
 
 ; indent-only
-#_(defn skip-whitespace
+(defn skip-whitespace
   ([zloc] (skip-whitespace z/right zloc))
   ([f zloc] (skip f whitespace? zloc)))
+
+(defn whitespace-not-newline?
+  [zloc]
+  (or (= (tag zloc) :whitespace) (= (tag zloc) :comma)))
 
 (def whitespace-or-comment?
   #?(:clj z/whitespace-or-comment?
@@ -233,6 +237,13 @@
   (if-let [first-loc (zfirst zloc)]
     (if-let [nloc (right* first-loc)] (skip right* whitespace? nloc))))
 
+(defn zsecond-no-comment
+  "Find the second non-whitespace zloc inside of this zloc."
+  [zloc]
+  (if-let [first-loc (zfirst zloc)]
+    (if-let [nloc (right* first-loc)]
+      (skip right* whitespace-or-comment? nloc))))
+
 (defn zthird
   "Find the third non-whitespace zloc inside of this zloc."
   [zloc]
@@ -241,6 +252,15 @@
            (skip right* whitespace?)
            right*
            (skip right* whitespace?)))
+
+(defn zthird-no-comment
+  "Find the third non-whitespace zloc inside of this zloc."
+  [zloc]
+  (some->> (zfirst zloc)
+           right*
+           (skip right* whitespace-or-comment?)
+           right*
+           (skip right* whitespace-or-comment?)))
 
 (defn zfourth
   "Find the fourth non-whitespace zloc inside of this zloc."
@@ -257,6 +277,14 @@
   "Find the next non-whitespace zloc inside of this zloc."
   [zloc]
   (if zloc (if-let [nloc (right* zloc)] (skip right* whitespace? nloc))))
+
+(defn znextnws-w-nl
+  "Find the next non-whitespace zloc inside of this zloc considering 
+  newlines to not be whitespace. Returns nil if nothing left. Which is
+  why this is nextnws and not rightnws, since it is exposed in zfns."
+  [zloc]
+  (if zloc
+    (if-let [nloc (right* zloc)] (skip right* whitespace-not-newline? nloc))))
 
 (defn zrightmost
   "Find the rightmost non-whitespace zloc at this level"
@@ -283,6 +311,7 @@
   (if (z/end? zloc)
     zloc
     (if-let [nloc (next* zloc)] (skip next* whitespace? nloc))))
+
 
 (defn zprevnws
   "Find the next non-whitespace zloc."
@@ -687,8 +716,11 @@
     zprint.zfns/zfirst zfirst
     zprint.zfns/zfirst-no-comment zfirst-no-comment
     zprint.zfns/zsecond zsecond
+    zprint.zfns/zsecond-no-comment zsecond-no-comment
     zprint.zfns/zthird zthird
+    zprint.zfns/zthird-no-comment zthird-no-comment
     zprint.zfns/zfourth zfourth
+    zprint.zfns/znextnws-w-nl znextnws-w-nl
     zprint.zfns/znthnext znthnext
     zprint.zfns/zcount zcount
     zprint.zfns/zmap zmap
