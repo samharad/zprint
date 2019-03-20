@@ -220,6 +220,11 @@
   [zloc _ _]
   (string zloc))
 
+(defn zstart
+  "Find the zloc inside of this zloc."
+  [zloc]
+  (down* zloc))
+
 (defn zfirst
   "Find the first non-whitespace zloc inside of this zloc, or
   the first whitespace zloc that is the focus."
@@ -240,7 +245,7 @@
 (defn zsecond-no-comment
   "Find the second non-whitespace zloc inside of this zloc."
   [zloc]
-  (if-let [first-loc (zfirst zloc)]
+  (if-let [first-loc (zfirst-no-comment zloc)]
     (if-let [nloc (right* first-loc)]
       (skip right* whitespace-or-comment? nloc))))
 
@@ -256,7 +261,7 @@
 (defn zthird-no-comment
   "Find the third non-whitespace zloc inside of this zloc."
   [zloc]
-  (some->> (zfirst zloc)
+  (some->> (zfirst-no-comment zloc)
            right*
            (skip right* whitespace-or-comment?)
            right*
@@ -713,6 +718,7 @@
     zprint.zfns/zseqnws zseqnws
     zprint.zfns/zmap-right zmap-right
     zprint.zfns/zfocus-style zfocus-style
+    zprint.zfns/zstart zstart
     zprint.zfns/zfirst zfirst
     zprint.zfns/zfirst-no-comment zfirst-no-comment
     zprint.zfns/zsecond zsecond

@@ -16,6 +16,7 @@
 (def zfocus-style nil)
 (def zfirst nil)
 (def zfirst-no-comment nil)
+(def zstart nil)
 (def zsecond nil)
 (def zsecond-no-comment nil)
 (def zthird nil)

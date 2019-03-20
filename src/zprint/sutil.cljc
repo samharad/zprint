@@ -286,6 +286,7 @@
     zprint.zfns/zseqnws sseqnws
     zprint.zfns/zmap-right smap-right
     zprint.zfns/zfocus-style sfocus-style
+    zprint.zfns/zstart sfirst
     zprint.zfns/zfirst sfirst
     zprint.zfns/zfirst-no-comment sfirst
     zprint.zfns/zsecond ssecond
