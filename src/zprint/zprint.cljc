@@ -2569,7 +2569,7 @@
 	      ; Whatever we have, it needs to end with a newline
 	      ; but since the next thing will probably flow, we maybe don't
 	      ; need that now?
-              (if false #_(not newline-last?)
+              (if (and (not skip-first?) (not newline-last?))
                 [[(str "\n" (blanks findent)) :none :indent]]
                 :noseq)) next-zloc next-count])))))
   ([caller options hindent findent zloc]
@@ -3166,7 +3166,7 @@
         indent (:indent (options caller))
         [[pre-arg-1-style-vec pre-arg-2-style-vec] [arg-1-zloc arg-2-zloc]
          [arg-1-count arg-2-count] zloc-seq :as up-to-second-data]
-          (fzprint-up-to-second-zloc caller options ind zloc)
+          (fzprint-up-to-second-zloc caller options (+ ind l-str-len) zloc)
         ;; TODO: Change (zfirst-no-comment zloc) to arg-1-zloc below
         _ (dbg-pr options
                   "fzprint-list* pre-arg-1-style-vec:" pre-arg-1-style-vec
