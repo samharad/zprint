@@ -294,6 +294,7 @@
     zprint.zfns/zthird sthird
     zprint.zfns/zthird-no-comment sthird
     zprint.zfns/zfourth sfourth
+    zprint.zfns/znextnws next
     zprint.zfns/znextnws-w-nl next
     zprint.zfns/znthnext snthnext
     zprint.zfns/zcount scount

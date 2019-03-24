@@ -22,6 +22,7 @@
 (def zthird nil)
 (def zthird-no-comment nil)
 (def zfourth nil)
+(def znextnws nil)
 (def znextnws-w-nl nil)
 (def znthnext nil)
 (def zcount nil)

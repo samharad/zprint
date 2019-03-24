@@ -279,7 +279,8 @@
            (skip right* whitespace?)))
 
 (defn zrightnws
-  "Find the next non-whitespace zloc inside of this zloc."
+  "Find the next non-whitespace zloc inside of this zloc. Returns nil
+  if nothing left."
   [zloc]
   (if zloc (if-let [nloc (right* zloc)] (skip right* whitespace? nloc))))
 
@@ -310,7 +311,8 @@
          ploc zloc]
     (if-not nloc ploc (recur (zleftnws nloc) nloc))))
 
-(defn znextnws
+; This uses next*, not right*, and will step up out of a sequence.
+#_(defn znextnws
   "Find the next non-whitespace zloc."
   [zloc]
   (if (z/end? zloc)
@@ -726,6 +728,7 @@
     zprint.zfns/zthird zthird
     zprint.zfns/zthird-no-comment zthird-no-comment
     zprint.zfns/zfourth zfourth
+    zprint.zfns/znextnws zrightnws
     zprint.zfns/znextnws-w-nl znextnws-w-nl
     zprint.zfns/znthnext znthnext
     zprint.zfns/zcount zcount
