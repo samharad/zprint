@@ -215,6 +215,7 @@
   (only-keys :opt-un [::constant-pair-min ::constant-pair? ::hang-diff
                       ::hang-avoid ::hang-expand ::hang-size ::hang? ::indent
                       ::indent-arg ::pair-hang? ::return-altered-zipper
+		      ::respect-nl?
 		      ::indent-only?]))
 (s/def ::map
   (only-keys

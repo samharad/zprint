@@ -2512,6 +2512,23 @@
              (conj out nloc)
              (inc next-count)))))
 
+(defn remove-last-newline
+  "Given a seq of style-vecs, look at the last one, and if it is a
+  :newline, then remove it.  But the last one might be a single
+  one, in which case we will remove the whole thing, and it might be
+  the last one in a sequence, in which case we will remove just that
+  one.  If there is nothing left, return [[[\"\" :none :none]]]."
+  [ssv]
+  (let [last-style-vec (last ssv)]
+    (if-not (= (nth (last last-style-vec) 2) :newline)
+      ssv
+      (let [last-len (count last-style-vec)
+            total-len (count ssv)
+            remove-one
+              (concat (butlast ssv)
+                      (if (= last-len 1) [] (vector (butlast last-style-vec))))]
+        (if (empty? remove-one) [[["" :none :none]]] remove-one)))))
+
 (defn fzprint-up-to-next-zloc
   "Take a current position, and move right, turning any comments
   and (possibly) newlines into style-vec elements, and keeping track
@@ -2548,27 +2565,43 @@
                ; If we doing flow (which we are), if a hang was possible
                ; (which we determine by comparing hindent and findent),
                ; then remove the last :newline, if any.
+               ;
+               ; But now we don't really know if a hang was possible because
+               ; we are doing this much earlier in fzprint-list*, so we
+               ; will remove the last new-line if we skipped something,
+               ; which will kind of be a hang was possible.
                _ (dbg-pr options
                          "fzprint-up-to-next-zloc: coll-print:"
                          coll-print)
-               newline-last? (= (nth (first (last coll-print)) 2) :newline)
-               coll-print (if (not= hindent findent)
-                            (if newline-last? (butlast coll-print) coll-print)
-                            coll-print)
-               coll-print (if coll-print coll-print :noseq)]
+	       ; See butlastoops in log.txt
+
+               coll-print (if skip-first?
+                            #_(not= hindent findent)
+			    (remove-last-newline coll-print)
+			    coll-print)
+               newline-first? (= (nth (first (first coll-print)) 2) :newline)
+               newline-last? (= (nth (last (last coll-print)) 2) :newline)
+			    ]
+	   ; coll-print should never be :noseq or nil here
+	   ; TODO: take out the coll? coll-print below because of this
            (dbg-pr options
-                   "fzprint-up-to-next-zloc: newline-last?"
-                   newline-last?
-		   "zloc-newline-or-comment?:" zloc-newline-or-comment?)
+                   "fzprint-up-to-next-zloc: newline-last?" newline-last?
+                   "zloc-newline-or-comment?:" zloc-newline-or-comment?
+                   "coll-print:" coll-print)
            [findent
             (concat-no-nil
-              (if zloc-newline-or-comment? :noseq [[" " :none :none]])
-              (apply concat-no-nil
-                (interpose [[(str "\n" (blanks findent)) :none :indent]]
-                  coll-print))
-	      ; Whatever we have, it needs to end with a newline
-	      ; but since the next thing will probably flow, we maybe don't
-	      ; need that now?
+              (if zloc-newline-or-comment?
+                [[(str "\n" (blanks findent)) :none :indent]]
+                (if newline-first? :noseq [[" " :none :none]]))
+              (if (coll? coll-print)
+                (apply concat-no-nil
+                  (interpose [[(str "\n" (blanks findent)) :none :indent]]
+                    coll-print))
+                :noseq)
+              ; Whatever we have, it needs to end with a newline
+              ; but since the next thing will probably flow, we
+              ; maybe don't
+              ; need that now?
               (if (and (not skip-first?) (not newline-last?))
                 [[(str "\n" (blanks findent)) :none :indent]]
                 :noseq)) next-zloc next-count])))))
@@ -3213,6 +3246,10 @@
         indent (+ indent (dec l-str-len))
         one-line-ok? (allow-one-line? options len fn-style)
         one-line-ok? (when-not indent-only? one-line-ok?)
+	one-line-ok? (if (or (not= pre-arg-1-style-vec :noseq)
+	                     (not= pre-arg-2-style-vec :noseq))
+			nil
+			one-line-ok?)
         ; remove -body from fn-style if it was there
         fn-style (or (body-map fn-style) fn-style)
         ; All styles except :hang, :flow, and :flow-body and :binding need

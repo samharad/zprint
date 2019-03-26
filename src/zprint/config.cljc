@@ -442,7 +442,8 @@
           :indent 2,
           :indent-arg nil,
 	  :indent-only? nil,
-          :pair-hang? true},
+          :pair-hang? true
+	  :respect-nl? false},
    :map {:indent 2,
          :sort? true,
          :sort-in-code? nil,
