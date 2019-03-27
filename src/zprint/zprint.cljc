@@ -2529,6 +2529,16 @@
                       (if (= last-len 1) [] (vector (butlast last-style-vec))))]
         (if (empty? remove-one) [[["" :none :none]]] remove-one)))))
 
+(defn add-newline-to-comment
+  "Given [[[\";stuff\" :none :comment]]] or 
+  [[[\";bother\" :none :comment-inline 1]]] add [\"\n\" :none :newline]
+  to the inside of it."
+  [indent fzprint*-return]
+  (let [the-type (nth (first fzprint*-return) 2)]
+    (if (or (= the-type :comment) (= the-type :comment-inline))
+      (concat fzprint*-return [[(str "\n" (blanks indent)) :none :newline]])
+      fzprint*-return)))
+
 (defn fzprint-up-to-next-zloc
   "Take a current position, and move right, turning any comments
   and (possibly) newlines into style-vec elements, and keeping track
@@ -2549,11 +2559,12 @@
          [zloc-seq next-zloc next-count]
            (up-to-next-zloc
              respect-nl?
+             ; Do the skip for skip-first? here
              (if skip-first?
                (if respect-nl? (znextnws-w-nl zloc) (znextnws zloc))
                zloc))
-         next-count (if skip-first? (inc next-count) next-count)
-         zloc-newline-or-comment? (newline-or-comment? zloc)]
+         ; account for any skip first
+         next-count (if skip-first? (inc next-count) next-count)]
      (dbg-form
        options
        "fzprint-up-to-next-zloc exit:"
@@ -2562,6 +2573,8 @@
          ; By definition, everything in zloc-seq will contain newlines
          ; either explicit or implicit
          (let [coll-print (fzprint-seq options findent zloc-seq)
+               coll-print (map (partial add-newline-to-comment findent)
+                            coll-print)
                ; If we doing flow (which we are), if a hang was possible
                ; (which we determine by comparing hindent and findent),
                ; then remove the last :newline, if any.
@@ -2573,38 +2586,31 @@
                _ (dbg-pr options
                          "fzprint-up-to-next-zloc: coll-print:"
                          coll-print)
-	       ; See butlastoops in log.txt
-
-               coll-print (if skip-first?
-                            #_(not= hindent findent)
-			    (remove-last-newline coll-print)
-			    coll-print)
+               coll-print
+                 (if skip-first? (remove-last-newline coll-print) coll-print)
                newline-first? (= (nth (first (first coll-print)) 2) :newline)
-               newline-last? (= (nth (last (last coll-print)) 2) :newline)
-			    ]
-	   ; coll-print should never be :noseq or nil here
-	   ; TODO: take out the coll? coll-print below because of this
+               newline-last? (= (nth (last (last coll-print)) 2) :newline)]
+           ; coll-print should never be :noseq or nil here
+           ; TODO: take out the coll? coll-print below because of this
            (dbg-pr options
                    "fzprint-up-to-next-zloc: newline-last?" newline-last?
-                   "zloc-newline-or-comment?:" zloc-newline-or-comment?
                    "coll-print:" coll-print)
            [findent
-            (concat-no-nil
-              (if zloc-newline-or-comment?
-                [[(str "\n" (blanks findent)) :none :indent]]
-                (if newline-first? :noseq [[" " :none :none]]))
-              (if (coll? coll-print)
-                (apply concat-no-nil
-                  (interpose [[(str "\n" (blanks findent)) :none :indent]]
-                    coll-print))
-                :noseq)
-              ; Whatever we have, it needs to end with a newline
-              ; but since the next thing will probably flow, we
-              ; maybe don't
-              ; need that now?
-              (if (and (not skip-first?) (not newline-last?))
-                [[(str "\n" (blanks findent)) :none :indent]]
-                :noseq)) next-zloc next-count])))))
+            (concat-no-nil (if (or newline-first? (not skip-first?))
+                             :noseq
+                             [[" " :none :none]])
+                           (apply concat-no-nil coll-print)
+                           ; We use skip-first? as a sentinal for whether or 
+			   ; not the next thing will flow.  If we are 
+			   ; (not skip-first?), then we are doing the first 
+			   ; stuff in a list, and we aren't going to flow 
+			   ; the first actual zloc we care about, so we better
+                           ; be sure we have a newline in there if we don't
+                           ; already.  Otherwise, we expect to get one 
+			   ; by the thing that flows.
+                           (if (and (not skip-first?) (not newline-last?))
+                             [[(str "\n" (blanks findent)) :none :indent]]
+                             :noseq)) next-zloc next-count])))))
   ([caller options hindent findent zloc]
    (fzprint-up-to-next-zloc caller options hindent findent zloc :skip-first)))
 
