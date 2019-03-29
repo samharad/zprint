@@ -1652,8 +1652,10 @@
                    (interleave
                      (map #(vector [(str "\n" (blanks %)) :none :indent]) ind)
                      coll-print))
-             (interpose [[(str "\n" (blanks ind)) :none :indent]]
-               coll-print)))))))
+             (interpose-either-new [[(str "\n" (blanks ind)) :none :indent]]
+                                   nil
+                                   #(not (= (nth (first %) 2) :newline))
+                                   coll-print)))))))
   ([options ind zloc-seq] (fzprint-flow-seq options ind zloc-seq nil)))
 
 
@@ -2548,7 +2550,8 @@
   a value (since nil isn't happy), and next-zloc might be nil. Note
   that, depending on the value of (:respect-nl? (caller options)),
   the style-vec and next-count-from-zloc might include information
-  about newlines, or not."
+  about newlines, or not.
+  NOTE: This is only called for zippers!!!"
   ([caller options hindent findent zloc skip-first?]
    (dbg-pr options
            "fzprint-up-to-next-zloc: hindent:" hindent
@@ -2560,7 +2563,12 @@
            (up-to-next-zloc
              respect-nl?
              ; Do the skip for skip-first? here
-             (if skip-first?
+             (if (or skip-first?
+                     ; If we are not skipping, but we are sitting on
+                     ; whitespace, lets move off of it.
+                     (if respect-nl?
+                       (zprint.zutil/whitespace-not-newline? zloc)
+                       (zprint.zutil/whitespace? zloc)))
                (if respect-nl? (znextnws-w-nl zloc) (znextnws zloc))
                zloc))
          ; account for any skip first
@@ -2598,16 +2606,19 @@
            [findent
             (concat-no-nil (if (or newline-first? (not skip-first?))
                              :noseq
-                             [[" " :none :none]])
+                             (if (= (nth (first (first coll-print)) 2)
+                                    :comment-inline)
+                               [[(str "\n" (blanks findent)) :none :indent]]
+                               [[" " :none :none]]))
                            (apply concat-no-nil coll-print)
-                           ; We use skip-first? as a sentinal for whether or 
-			   ; not the next thing will flow.  If we are 
-			   ; (not skip-first?), then we are doing the first 
-			   ; stuff in a list, and we aren't going to flow 
-			   ; the first actual zloc we care about, so we better
+                           ; We use skip-first? as a sentinal for whether or
+                           ; not the next thing will flow.  If we are
+                           ; (not skip-first?), then we are doing the first
+                           ; stuff in a list, and we aren't going to flow
+                           ; the first actual zloc we care about, so we better
                            ; be sure we have a newline in there if we don't
-                           ; already.  Otherwise, we expect to get one 
-			   ; by the thing that flows.
+                           ; already.  Otherwise, we expect to get one
+                           ; by the thing that flows.
                            (if (and (not skip-first?) (not newline-last?))
                              [[(str "\n" (blanks findent)) :none :indent]]
                              :noseq)) next-zloc next-count])))))
@@ -2638,8 +2649,6 @@
                                      true)]
       [[pre-first-style-vec pre-second-style-vec] [first-zloc second-zloc]
        [first-count (+ first-count second-count)]
-       ; This is nice, but it doesn't have :newlines if we aren't :respect-nl?
-       ; and the first-count and second-count both count newlines at present.
        (fzprint-zloc-seq caller options zloc)])))
 
 #_(defn count-style-vecs
@@ -2669,14 +2678,14 @@
 
 (defn at-newline?
   "Is this a newline or equivalent?  Comments and newlines are both
-  newlines."
+  newlines for the purposed of this routine."
   [zloc]
   (let [this-tag (ztag zloc)]
     (or (= this-tag :comment) (= this-tag :newline))))
 
 (defn next-newline
   "Given a zloc that is down inside of a collection, presumably
-  alist, return a vector containing the number of printing elements
+  a list, return a vector containing the number of printing elements
   we had to traverse to get to it as well as the newline."
   [zloc]
   (loop [nloc zloc
@@ -3919,6 +3928,24 @@
                  (conj-it! out sep-nil (first coll))))
              (pred? (first coll))))))
 
+(defn interpose-either-new
+  "Do the same as interpose, but different seps depending on pred?.
+  If sep-nil is nil, then when pred? is false we don't interpose
+  anything!"
+  [sep-true sep-nil pred? coll]
+  (loop [coll coll
+         out (transient [])
+         interpose? nil]
+    (if (empty? coll)
+      (persistent! out)
+      (recur (next coll)
+             (if interpose?
+               (conj-it! out sep-true (first coll))
+               (if (or (zero? (count out)) (nil? sep-nil))
+                 (conj! out (first coll))
+                 (conj-it! out sep-nil (first coll))))
+             (pred? (first coll))))))
+
 ; transient helped a lot here
 (defn interpose-either-nl-hf
   "Do the same as interpose, but different seps depending on pred-fn
@@ -4661,7 +4688,6 @@
         #_(prn "comment-str:" comment-str)
         (if (empty? comment-str)
           (if (zero? (count out))
-            ;(empty? out)
             (if newline?
               [[semi-str color stype] ["\n" :none :indent]]
               [[semi-str color stype]])
