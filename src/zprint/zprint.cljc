@@ -1633,8 +1633,13 @@
   with force-nl?. If you want it to do less than everything in the 
   original zloc, modify the result of (zmap identity zloc) to just 
   contain what you want to print. ind is either a single indent,
-  or a seq of indents, one for each element in zloc-seq."
-  ([options ind zloc-seq force-nl?]
+  or a seq of indents, one for each element in zloc-seq.
+  Don't concatenate an indent/newline on to the beginning of the
+  output from this routine.  Let this routine do it for you, as it
+  needs to know one is there in order to properly deal with any
+  newlines in the actual stream.  Else you will get two where you
+  only should have one."
+  ([options ind zloc-seq force-nl? nl-first?]
    (dbg options "fzprint-flow-seq: count zloc-seq:" (count zloc-seq))
    (let [coll-print (fzprint-seq options ind zloc-seq)
          one-line (apply concat-no-nil
@@ -1648,15 +1653,17 @@
          one-line
          (apply concat-no-nil
            (if (coll? ind)
+             ; TODO: This hasn't been fixed for respect-nl?
              (drop 1
                    (interleave
                      (map #(vector [(str "\n" (blanks %)) :none :indent]) ind)
                      coll-print))
-             (interpose-either-new [[(str "\n" (blanks ind)) :none :indent]]
-                                   nil
-                                   #(not (= (nth (first %) 2) :newline))
-                                   coll-print)))))))
-  ([options ind zloc-seq] (fzprint-flow-seq options ind zloc-seq nil)))
+             (precede-w-nl ind
+                           #_[[(str "\n" (blanks ind)) :none :indent]]
+                           #_(not (= (nth (first %) 2) :newline))
+                           coll-print
+                           (not nl-first?))))))))
+  ([options ind zloc-seq] (fzprint-flow-seq options ind zloc-seq nil nil)))
 
 
 (defn fzprint-hang-one
@@ -3382,7 +3389,7 @@
             binding-style-vec
             (if (> len 2)
               (concat-no-nil
-                [[(str "\n" (blanks (+ indent ind))) :none :indent]]
+                #_[[(str "\n" (blanks (+ indent ind))) :none :indent]]
                 ; here we use options, because fzprint-flow-seq
                 ; will sort it out
                 (fzprint-flow-seq options
@@ -3391,7 +3398,8 @@
                                   #_(zmap-right identity arg-2-zloc)
                                   ; zmap-right is probaby better
                                   #_(nthnext (zmap identity zloc) 2)
-                                  :force-nl)
+                                  :force-nl
+				  :newline-first)
                 r-str-vec)
               r-str-vec)))
       #_(let [[new-ind pre-binding-style-vec next-zloc] (fzprint-up-to-next-zloc
@@ -3945,6 +3953,37 @@
                  (conj! out (first coll))
                  (conj-it! out sep-nil (first coll))))
              (pred? (first coll))))))
+
+(defn precede-w-nl
+  "Move through a sequence of style vecs and ensure that at least
+  one newline (actually an indent) appears before each element.  Convert
+  any :newline elements to :indent elements with the right indent.
+  If not-first? is truthy, then don't put a newline before the first
+  element."
+  [indent coll not-first?]
+  (loop [coll coll
+         out (transient [])
+         added-nl? not-first?]
+    (if (empty? coll)
+      (persistent! out)
+      (let [[[s color what] :as element] (first coll)
+            newline? (= what :newline)]
+	(prn "(first coll):" (first coll) "what:" what "element:" element)
+        (recur (next coll)
+               (if newline?
+                 ; It is a :newline, so just make it an :indent and move on
+                 (conj! out element  #_[[(str "\n" (blanks indent)) :none :indent]])
+                 ; It is not a :newline, so we want to make sure we have a
+                 ; newline in front of it, unless we already have one..
+                 (if added-nl?
+                   ; We already have a newline in front of it
+                   (conj! out element)
+                   ; We need both a newline and the element
+                   (conj-it! out
+                             [[(str "\n" (blanks indent)) :none :indent]]
+                             element)))
+               ; Is there a newline as the last thing we just did?
+               newline?)))))
 
 ; transient helped a lot here
 (defn interpose-either-nl-hf
