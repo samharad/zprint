@@ -188,6 +188,7 @@
 (s/def ::cwd-zprintrc? ::boolean)
 (s/def ::search-config? ::boolean)
 (s/def ::dbg? ::boolean)
+(s/def ::dbg-local? ::boolean)
 (s/def ::dbg-print? ::boolean)
 (s/def ::dbg-ge zany?)
 
@@ -286,6 +287,7 @@
   (only-keys
     :opt-un [::additional-libraries? ::agent ::array ::atom ::auto-width?
              ::binding ::color? ::color-map :alt/comment ::configured? ::dbg?
+	     ::dbg-local?
              ::cwd-zprintrc? ::dbg-bug? ::dbg-print? ::dbg-ge ::delay
              ::do-in-hang? ::drop? ::extend ::file? ::fn-force-nl
              ::fn-gt2-force-nl ::fn-gt3-force-nl ::fn-map ::fn-name ::fn-obj
