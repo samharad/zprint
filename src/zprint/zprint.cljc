@@ -4488,13 +4488,12 @@
 
 (defn precede-w-nl
   "Move through a sequence of style vecs and ensure that at least
-  one newline (actually an indent) appears before each element. 
-
-  Not really:
-  Convert any :newline elements to :indent elements with the right indent.
-
-  If not-first? is truthy, then don't put a newline before the first
-  element."
+  one newline (actually an indent) appears before each element.  If
+  a newline in the style-vecs is where we wanted one, well and good.
+  If there are more than we wanted, be sure that they come out.
+  Also, a comment gets a newline and shouldn't overlay a following
+  explicit newline.  If not-first? is truthy, then don't put a
+  newline before the first element."
   [indent coll not-first?]
   (loop [coll coll
          out (transient [])
@@ -4502,31 +4501,47 @@
     (if (empty? coll)
       (persistent! out)
       (let [[[s color what] :as element] (first coll)
-	    ; I believe that if the first thing is a newline then they
-	    ; must all be newlines.  We could check the last, or all of
-	    ; them here, I suppose.  But these have to come from 
-	    ; fzprint-newline, to the best of my knowledge, and that is 
-	    ; how it works.
-            newline? (= what :newline)]
-	(prn "precede-w-nl: (first coll):" (first coll) 
-	     "what:" what 
-	     "element:" element)
-        (recur (next coll)
-               (if newline?
-                 ; It is a :newline, and possibly more, so just use it as
-		 ; it is.
-                 (conj! out element) 
-                 ; It is not a :newline, so we want to make sure we have a
-                 ; newline in front of it, unless we already have one..
-                 (if added-nl?
-                   ; We already have a newline in front of it
-                   (conj! out element)
-                   ; We need both a newline and the element
-                   (conj-it! out
-                             [[(str "\n" (blanks indent)) :none :indent]]
-                             element)))
-               ; Is there a newline as the last thing we just did?
-               newline?)))))
+            ; This element may have many things in it, or sometimes
+            ; just one.
+            ;
+            ; I believe that if the first thing is a newline then they
+            ; must all be newlines.  We could check the last, or all of
+            ; them here, I suppose.  But these have to come from
+            ; fzprint-newline, to the best of my knowledge, and that is
+            ; how it works.
+            newline? (= what :newline)
+            ; Let's make sure about the last
+            last-what (nth (last element) 2)
+            comment? (or (= last-what :comment) (= last-what :comment-inline))]
+        (prn "precede-w-nl: (first coll):" (first coll)
+             "what:" what
+             "comment?:" comment?
+             "element:" element)
+        (recur
+          (next coll)
+          (if newline?
+            ; It is a :newline, and possibly more, so just use it as
+            ; it is.
+            (conj! out element)
+            ; It is not a :newline, so we want to make sure we have a
+            ; newline in front of it, unless we already have one..
+            (if added-nl?
+              ; We already have a newline in front of it
+              (if comment?
+                (conj! out element [[(str "\n" (blanks indent)) :none :indent]])
+                (conj! out element))
+              ; We need both a newline and the element
+              (if comment?
+                (conj-it! out
+                          [[(str "\n" (blanks indent)) :none :indent]]
+                          element
+                          [[(str "\n" (blanks indent)) :none :indent]])
+                (conj-it! out
+                          [[(str "\n" (blanks indent)) :none :indent]]
+                          element))))
+          ; Is there a newline as the last thing we just did?
+	  ; Two ways for that to happen.
+          (or newline? comment?))))))
 
 ; transient helped a lot here
 
