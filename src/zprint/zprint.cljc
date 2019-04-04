@@ -6,7 +6,8 @@
     [clojure.string :as s]
     [zprint.finish :refer [newline-vec]]
     [zprint.zfns :refer
-     [zstring znumstr zbyte-array? zcomment? zsexpr zseqnws zmap-right
+     [zstring znumstr zbyte-array? zcomment? zsexpr zseqnws
+     zseqnws-w-nl zmap-right
       zfocus-style zstart zfirst zfirst-no-comment zsecond zsecond-no-comment zthird zfourth znthnext
       zcount zmap zanonfn? zfn-obj? zfocus zfind-path zwhitespace? zlist?
       zvector? zmap? zset? zcoll? zuneval? zmeta? ztag zlast zarray? zatom?
@@ -1705,17 +1706,17 @@
                    (conj! out pair-vec))))))))
 
 (defn partition-all-2-nc-new
-  "Input is (zseqnws zloc) where one assumes that these are pairs.
-  Thus, a seq of zlocs.  Output is a sequence of seqs, where the
-  seqs are usually pairs, but might be single things.  Doesn't pair
-  up comments or #_(...) unevaled sexpressions.  The ones before
-  the first part of a pair come as a single element in what would
-  usually be a pair, and the ones between the first and second parts
-  of a pair come inside the pair.  There may be an arbitrary number
-  of elements between the first and second elements of the pair
-  (one per line).  If there are any comments or unevaled sexpressions,
-  don't sort the keys, as we might lose track of where the comments
-  or unevaled s-expressions go."
+  "Input is (zseqnws zloc) or (zseqnws-w-nl) where one assumes that
+  these are pairs.  Thus, a seq of zlocs.  Output is a sequence of
+  seqs, where the seqs are usually pairs, but might be single things.
+  Doesn't pair up comments or #_(...) unevaled sexpressions.  The
+  ones before the first part of a pair come as a single element in
+  what would usually be a pair, and the ones between the first and
+  second parts of a pair come inside the pair.  There may be an
+  arbitrary number of elements between the first and second elements
+  of the pair (one per line).  If there are any comments or unevaled
+  sexpressions, don't sort the keys, as we might lose track of where
+  the comments or unevaled s-expressions go."
   [options coll]
   (when-not (empty? coll)
     (let [max-length (get-max-length options)]
@@ -4878,8 +4879,11 @@
                  zloc)
           [no-sort? pair-seq] (partition-all-2-nc-new (no-max-length options)
 	                         (if respect-nl?
-				   (zmap-w-nl identity zloc)
-				   (zmap identity zloc)))
+				   #_(zmap-w-nl identity zloc)
+				   (zseqnws-w-nl zloc)
+				   #_(zmap identity zloc)
+				   (zseqnws zloc)
+				   ))
 	  #_(dbg-pr "fzprint-map*-new pair-seq:" (map (comp zstring first) pair-seq))
 	  ; don't sort if we are doing respect-nl?
 	  no-sort? (or no-sort? respect-nl?)

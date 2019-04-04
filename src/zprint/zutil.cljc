@@ -392,6 +392,12 @@
   [zloc]
   (zmap identity zloc))
 
+(defn zseqnws-w-nl
+  "Return a seq of all of the non-whitespace children of zloc, including
+  newlines."
+  [zloc]
+  (zmap-w-nl identity zloc))
+
 (defn zremove-right
   "Remove everything to the right of the current zloc. In other words,
   make the current zloc the rightmost."
@@ -718,6 +724,7 @@
     zprint.zfns/zcomment? zcomment?
     zprint.zfns/zsexpr sexpr
     zprint.zfns/zseqnws zseqnws
+    zprint.zfns/zseqnws-w-nl zseqnws-w-nl
     zprint.zfns/zmap-right zmap-right
     zprint.zfns/zfocus-style zfocus-style
     zprint.zfns/zstart zstart

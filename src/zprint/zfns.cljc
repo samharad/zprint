@@ -12,6 +12,7 @@
 (def zcomment? nil)
 (def zsexpr nil)
 (def zseqnws nil)
+(def zseqnws-w-nl nil)
 (def zmap-right nil)
 (def zfocus-style nil)
 (def zfirst nil)

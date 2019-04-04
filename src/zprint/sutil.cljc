@@ -284,6 +284,7 @@
     zprint.zfns/zcomment? (constantly false)
     zprint.zfns/zsexpr identity
     zprint.zfns/zseqnws sseqnws
+    zprint.zfns/zseqnws-w-nl sseqnws
     zprint.zfns/zmap-right smap-right
     zprint.zfns/zfocus-style sfocus-style
     zprint.zfns/zstart sfirst
