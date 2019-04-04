@@ -2156,24 +2156,25 @@
                    (interleave
                      (map #(vector [(str "\n" (blanks %)) :none :indent]) ind)
                      coll-print))
-	     ; This won't handle the first newline right.  But it could be
-	     ; extended to do that.
-	     #_(interpose-either-nl-hf-new
-	        nil
-	        nil
-		nil
-		[[(str "\n" (blanks ind)) :none :indent]]
-		[[(str "\n" (blanks ind)) :none :indent]]
-		nil
-		nil
-		coll-print)
-
+             ; This won't handle the first newline right.  But it could be
+             ; extended to do that.
+             #_(interpose-either-nl-hf-new
+                 nil
+                 nil
+                 nil
+                 [[(str "\n" (blanks ind)) :none :indent]]
+                 [[(str "\n" (blanks ind)) :none :indent]]
+                 nil
+                 nil
+                 coll-print)
              (precede-w-nl ind
                            #_[[(str "\n" (blanks ind)) :none :indent]]
                            #_(not (= (nth (first %) 2) :newline))
                            coll-print
                            (not nl-first?))))))))
-  ([options ind zloc-seq] (fzprint-flow-seq options ind zloc-seq nil nil)))
+  ([options ind zloc-seq] (fzprint-flow-seq options ind zloc-seq nil nil))
+  ([options ind zloc-seq force-nl?]
+   (fzprint-flow-seq options ind zloc-seq force-nl? nil)))
 
 
 (defn fzprint-hang-one
@@ -3038,7 +3039,7 @@
   the last one in a sequence, in which case we will remove just that
   one.  If there is nothing left, return [[[\"\" :none :none]]]."
   [ssv]
-  (prn "remove-last-newline:" ssv)
+  #_(prn "remove-last-newline:" ssv)
   (let [last-style-vec (last ssv)]
     (if-not (= (nth (last last-style-vec) 2) :newline)
       ssv
@@ -4368,7 +4369,8 @@
             (merge-deep options new-options)
           ; If sort? is true, then respect-nl? makes no sense.  And vice versa.
           ; If respect-nl?, then no sort.
-          indent (or indent 0)
+          ;indent (or indent 0)
+	  indent (or indent (count l-str))
           new-ind (if indent-only? ind (+ indent ind))
           #_(+ indent ind)
           ;         new-ind (+ (count l-str) ind)
@@ -4514,35 +4516,36 @@
             ; Let's make sure about the last
             last-what (nth (last element) 2)
             comment? (or (= last-what :comment) (= last-what :comment-inline))]
-        (prn "precede-w-nl: (first coll):" (first coll)
-             "what:" what
-             "comment?:" comment?
-             "element:" element)
-        (recur
-          (next coll)
-          (if newline?
-            ; It is a :newline, and possibly more, so just use it as
-            ; it is.
-            (conj! out element)
-            ; It is not a :newline, so we want to make sure we have a
-            ; newline in front of it, unless we already have one..
-            (if added-nl?
-              ; We already have a newline in front of it
-              (if comment?
-                (conj! out element [[(str "\n" (blanks indent)) :none :indent]])
-                (conj! out element))
-              ; We need both a newline and the element
-              (if comment?
-                (conj-it! out
-                          [[(str "\n" (blanks indent)) :none :indent]]
-                          element
-                          [[(str "\n" (blanks indent)) :none :indent]])
-                (conj-it! out
-                          [[(str "\n" (blanks indent)) :none :indent]]
-                          element))))
-          ; Is there a newline as the last thing we just did?
-	  ; Two ways for that to happen.
-          (or newline? comment?))))))
+        #_(prn "precede-w-nl: (first coll):" (first coll)
+               "what:" what
+               "comment?:" comment?
+               "element:" element)
+        (recur (next coll)
+               (if newline?
+                 ; It is a :newline, and possibly more, so just use it as
+                 ; it is.
+                 (conj! out element)
+                 ; It is not a :newline, so we want to make sure we have a
+                 ; newline in front of it, unless we already have one..
+                 (if added-nl?
+                   ; We already have a newline in front of it
+                   (if comment?
+                     (conj-it! out
+                               element
+                               [[(str "\n" (blanks indent)) :none :indent]])
+                     (conj! out element))
+                   ; We need both a newline and the element
+                   (if comment?
+                     (conj-it! out
+                               [[(str "\n" (blanks indent)) :none :indent]]
+                               element
+                               [[(str "\n" (blanks indent)) :none :indent]])
+                     (conj-it! out
+                               [[(str "\n" (blanks indent)) :none :indent]]
+                               element))))
+               ; Is there a newline as the last thing we just did?
+               ; Two ways for that to happen.
+               (or newline? comment?))))))
 
 ; transient helped a lot here
 
@@ -4622,7 +4625,7 @@
       (let [[hangflow style-vec] (first coll)
             style-vec-empty? (and (= (count style-vec) 1)
                                   (empty? (first (first style-vec))))]
-  (prn "====>>>>>>>> interpose-either-nl-hf-new: style-vec:" style-vec)
+  #_(prn "====>>>>>>>> interpose-either-nl-hf-new: style-vec:" style-vec)
 
         (cond
           ; TODO: Get rid of this cond clause and the check for
@@ -4695,13 +4698,13 @@
                 nil ;first?
                 (if 
 		 (do
-		(prn "interpose-either-nl-hf-new style-vec:"
+		#_(prn "interpose-either-nl-hf-new style-vec:"
 		  style-vec
 		  "newline-count:" newline-count)
 		(or (= (nth (last style-vec) 2) :comment)
                         (= (nth (last style-vec) 2) :comment-inline)))
 		 (do
-		 (println "******************")
+		 #_(println "******************")
 		 1 )
 		  0)
 		 #_ 0 ;newline-count
