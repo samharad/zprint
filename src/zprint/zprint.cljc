@@ -106,7 +106,8 @@
   (when dbg-print?
     (if style-vec
       (do (println dbg-indent dbg-output "--------------" "in-hang?" in-hang?)
-          (println (apply str (blanks ind) (map first style-vec))))
+	  (prn style-vec)
+          #_(println (apply str (blanks ind) (map first style-vec))))
       (println dbg-indent dbg-output "--------------- no style-vec"))))
 
 ;;
@@ -2998,6 +2999,109 @@
   ([caller options hindent findent zloc fn-style]
    (fzprint-hang-remaining caller options hindent findent zloc fn-style nil)))
 
+(defn zcomment-or-newline?
+  "If this zloc is a comment or a newline, return true."
+  [zloc]
+  (or (zcomment? zloc) (znewline? zloc)))
+
+(defn count-constant-pairs-new
+  "Given a seq of zlocs, work backwards from the end, and see how
+  many elements are pairs of constants (using zconstant?).  So that
+  (... :a (stuff) :b (bother)) returns 4, since both :a and :b are
+  zconstant? true. This is made more difficult by having to skip
+  comments along the way as part of the pair check, but keep track
+  of the ones we skip so the count is right in the end.  We don't
+  expect any whitespace in this, because this seq should have been
+  produced by zmap-right or its equivalent, which already skips the
+  whitespace."
+  [seq-right]
+  (loop [seq-right-rev (reverse seq-right)
+         element-count 0
+         ; since it is reversed, we need a constant second
+         constant-required? nil
+         pair-size 0]
+    (let [element (first seq-right-rev)]
+      (if (empty? seq-right-rev)
+        ; remove potential elements of this pair, since we haven't
+        ; seen the end of it, and return
+        (- element-count pair-size)
+        (let [comment-or-newline? (zcomment-or-newline? element)]
+          (if (and (not comment-or-newline?)
+                   constant-required?
+                   (not (zconstant? element)))
+            ; we counted the right-hand and any comments of this pair, but it
+            ; isn't a pair so exit now with whatever we have so far
+            (- element-count pair-size)
+            (recur (next seq-right-rev)
+                   (inc element-count)
+                   (if comment-or-newline?
+                     constant-required?
+                     (not constant-required?))
+                   (if (and constant-required? (not comment-or-newline?))
+                     ; must be a constant, so start count over
+                     0
+                     (inc pair-size)))))))))
+
+(defn constant-pair-new
+  "Argument is a zloc-seq.  Output is a [pair-seq non-paired-item-count],
+  if any.  If there are no pair-seqs, pair-seq must be nil, not an
+  empty seq.  This will largely ignore newlines."
+  [caller {{:keys [constant-pair? constant-pair-min]} caller, :as options}
+   seq-right]
+  (if constant-pair?
+    (let [paired-item-count (count-constant-pairs-new seq-right)
+          non-paired-item-count (- (count seq-right) paired-item-count)
+          _ (dbg options
+                 "constant-pair-new: non-paired-items:"
+                 non-paired-item-count)
+          pair-seq (when (>= paired-item-count constant-pair-min)
+                     (second (partition-all-2-nc-new options
+                                                 (drop non-paired-item-count
+                                                       seq-right))))]
+      [pair-seq non-paired-item-count])
+    [nil (count seq-right)]))
+
+(defn constant-pair-newer
+  "Argument is a zloc-seq.  Output is a [pair-seq non-paired-item-count],
+  if any.  If there are no pair-seqs, pair-seq must be nil, not an
+  empty seq.  This will largely ignore newlines."
+  [caller {{:keys [constant-pair? constant-pair-min]} caller, :as options}
+   seq-right]
+  (if constant-pair?
+    (let [paired-item-count (count-constant-pairs-new seq-right)
+          non-paired-item-count (- (count seq-right) paired-item-count)
+          _ (dbg options
+                 "constant-pair-newer: non-paired-items:"
+                 non-paired-item-count)
+          pair-seq (when (>= paired-item-count constant-pair-min)
+                     (drop non-paired-item-count seq-right))]
+      [pair-seq non-paired-item-count])
+    [nil (count seq-right)]))
+
+(defn ensure-start-w-nl
+  "Given a style-vec, ensure it starts with a newline.  If it doesn't,
+  then put one in.  We could take the whole newline, but the indent is
+  really the only unique thing."
+  [ind style-vec]
+  (def eswn style-vec)
+  (prn "ensure-start-w-nl:" style-vec)
+  (let [element-type (nth (first style-vec) 2)]
+    (prn "ensure-start-w-nl:" element-type)
+    (if (or (= element-type :newline) (= element-type :indent))
+      style-vec
+      (concat-no-nil [[(str "\n" (blanks ind)) :none :indent]] style-vec))))
+
+(defn ensure-end-w-nl
+  "Given a style-vec, ensure it ends with a newline.  If it doesn't,
+  then put one in."
+  [ind style-vec]
+  (def eewn style-vec)
+  (prn "ensure-end-w-nl:" style-vec)
+  (let [element-type (nth (last style-vec) 2)]
+    (prn "ensure-end-w-nl:" element-type)
+    (if (or (= element-type :newline) (= element-type :indent))
+      style-vec
+      (concat-no-nil style-vec [[(str "\n" (blanks ind)) :none :indent]]))))
 
 (defn fzprint-hang-remaining-new 
   "zloc-seq is a seq of zlocs of a collection.  We already know
@@ -3030,7 +3134,7 @@
    (let [seq-right zloc-seq
          seq-right (if zloc-count (take zloc-count seq-right) seq-right)
          [pair-seq non-paired-item-count]
-           (constant-pair caller options seq-right)
+           (constant-pair-newer caller options seq-right)
          _ (dbg options
                 "fzprint-hang-remaining-new count pair-seq:"
                 (count pair-seq))
@@ -3048,18 +3152,22 @@
 					seq-right
 					:force-nl
 					:nl-first)
-		      #_(apply concat-no-nil
-			(precede-w-nl findent 
-				      (fzprint-seq options findent seq-right)
-				      nil))
                       (if (not (zero? non-paired-item-count))
                         ; We have constant pairs, ; but they follow
                         ; some stuff that isn't paired.
-                        (concat-no-nil
-                          ; The elements that are not pairs
-                          (apply concat-no-nil
-                            (interpose [[(str "\n" (blanks findent)) :none
-                                         :indent]]
+			; Do the elements that are not pairs
+			(concat-no-nil
+			  (ensure-end-w-nl
+			      findent
+			      (fzprint-flow-seq (not-rightmost options)
+			                        findent
+						(take non-paired-item-count
+						    seq-right)
+						    :force-nl
+						    :nl-first))
+			  #_(ensure-end-w-nl
+			      findent
+			      (apply concat-no-nil
                               (zpmap options
                                      (partial fzprint*
                                               (not-rightmost options)
@@ -3068,30 +3176,47 @@
                           ; Got to separate them since we are doing them in
                           ; two
                           ; pieces
-                          [[(str "\n" (blanks findent)) :none :indent]]
+			  ;
+			  ; And we need to figure out where they will
+			  ; split -- who gets the newlines?
+                          #_[[(str "\n" (blanks findent)) :none :indent]]
                           ; The elements that are constant pairs
-                          (interpose-nl-hf (:pair options)
+
+			  (fzprint-pairs-new options
+					     findent
+					     pair-seq)
+
+                          #_(interpose-nl-hf (:pair options)
                                            findent
                                            (fzprint-map-two-up :pair
                                                                ;caller
                                                                options
                                                                findent
                                                                nil
-                                                               pair-seq)))
+                                                               pair-seq))
+							       
+							       )
                         ; This code path is where we have all constant pairs.
-                        (interpose-nl-hf (:pair options)
+
+			(fzprint-pairs-new options
+			                   findent
+					   pair-seq)
+
+                        #_(interpose-nl-hf (:pair options)
                                          findent
                                          (fzprint-map-two-up :pair
                                                              ;caller
                                                              options
                                                              findent
                                                              nil
-                                                             pair-seq))))]
+                                                             pair-seq))
+							     
+							     ))]
 	      ; Skip the first line when doing the calcuation so that 
 	      ; good-enough doesn't change the layout from the original
               [flow-result 
 	      (style-lines options findent 
-	      (if-not pair-seq
+	      (if (not pair-seq)
 	       (next flow-result)
 	      flow-result)
 	      
@@ -3128,12 +3253,23 @@
          ; code comes out.
          ;
          [flow flow-lines] (zat options flow)
+	 _ (dbg options "fzprint-hang-remaining-new: first hang?" hang?
+	                 "hang-avoid" hang-avoid
+			 "findent:" findent
+			 "hindent:" hindent
+			 "(count seq-right):" (count seq-right)
+			 "thing:" (when hang-avoid 
+			              (* (- width hindent) hang-avoid)))
          hang? (and hang?
                     ; This is a key for "don't hang no matter what", it isn't
                     ; about making it prettier. People call this routine with
                     ; these values equal to ensure that it always flows.
                     (not= hindent findent)
                     ; This is not the original, below.
+		    ; If we are doing respect-nl?, then the count of seq-right
+		    ; is going to be a lot more, even if it doesn't end up 
+		    ; looking different than before.  So, perhaps we should 
+		    ; adjust hang-avoid here?  Perhaps double it or something?
                     (or (not hang-avoid)
                         (< (count seq-right) (* (- width hindent) hang-avoid)))
 	            ; If the first thing in the flow is a comment, maybe we
@@ -3147,6 +3283,7 @@
                     #_(or (<= (- hindent findent) hang-diff)
                           (<= (/ (dec (first flow-lines)) (count seq-right))
                               hang-expand)))
+	 _ (dbg options "fzprint-hang-remaining-new: second hang?" hang?)
          hanging
            (#?@(:clj [zfuture options]
                 :cljs [do])
@@ -3154,7 +3291,15 @@
                     (when hang?
                       (if-not pair-seq
                         ; There are no paired elements
-                        (apply concat-no-nil
+
+			(fzprint-flow-seq (in-hang options)
+					  hindent
+					  seq-right
+					  :force-nl
+					  :nl-first)
+
+
+                        #_(apply concat-no-nil
                           (interpose [[(str "\n" (blanks hindent)) :none
                                        :indent]]
                             (fzprint-seq (in-hang options) hindent seq-right)))
@@ -3164,7 +3309,35 @@
                             (dbg-form
                               options
                               "fzprint-hang-remaining-new: mapv:"
-                              (apply concat-no-nil
+
+
+
+			  (ensure-end-w-nl
+			    hindent
+			    (fzprint-flow-seq (not-rightmost (in-hang options))
+			                        hindent
+						(take non-paired-item-count
+						    seq-right)
+						    :force-nl
+						    nil ;nl-first?
+						    ))
+
+
+
+			  #_(ensure-end-w-nl
+			      hindent
+			      (apply concat-no-nil
+                              (zpmap options
+                                     (partial fzprint*
+                                              (not-rightmost (in-hang options))
+                                              hindent)
+                                     (take non-paired-item-count seq-right))))
+
+
+
+
+
+                              #_(apply concat-no-nil
                                 (interpose [[(str "\n" (blanks hindent)) :none
                                              :indent]]
                                   (zpmap
@@ -3175,11 +3348,16 @@
                                     (take non-paired-item-count seq-right)))))
                             ; Got to separate them because they were done in two
                             ; pieces
-                            [[(str "\n" (blanks hindent)) :none :indent]]
+                            #_[[(str "\n" (blanks hindent)) :none :indent]]
                             ; The elements that are paired
                             (dbg-form options
                                       "fzprint-hang-remaining-new: fzprint-hang:"
-                                      (interpose-nl-hf
+
+				    (fzprint-pairs-new (in-hang options)
+						       hindent
+						       pair-seq)
+
+                                     #_(interpose-nl-hf
                                         (:pair options)
                                         hindent
                                         (fzprint-map-two-up :pair
@@ -3189,7 +3367,13 @@
                                                             nil
                                                             pair-seq))))
                           ; All elements are paired
-                          (interpose-nl-hf (:pair options)
+
+			(fzprint-pairs-new (in-hang options)
+			                   hindent
+					   pair-seq)
+
+
+                          #_(interpose-nl-hf (:pair options)
                                            hindent
                                            (fzprint-map-two-up :pair
                                                                ;caller
@@ -3226,7 +3410,8 @@
                          hanging-lines
                          flow-lines)
          (concat-no-nil [[" " :none :whitespace]] hanging)
-	 (if-not pair-seq
+	 (ensure-start-w-nl findent flow)
+	 #_(if (not pair-seq) 
 	   flow
 	   (concat-no-nil [[(str "\n" (blanks findent)) :none :indent]] flow))
 	 ))))
