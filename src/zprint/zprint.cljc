@@ -3084,9 +3084,9 @@
   really the only unique thing."
   [ind style-vec]
   (def eswn style-vec)
-  (prn "ensure-start-w-nl:" style-vec)
+  #_(prn "ensure-start-w-nl:" style-vec)
   (let [element-type (nth (first style-vec) 2)]
-    (prn "ensure-start-w-nl:" element-type)
+    #_(prn "ensure-start-w-nl:" element-type)
     (if (or (= element-type :newline) (= element-type :indent))
       style-vec
       (concat-no-nil [[(str "\n" (blanks ind)) :none :indent]] style-vec))))
@@ -3096,9 +3096,9 @@
   then put one in."
   [ind style-vec]
   (def eewn style-vec)
-  (prn "ensure-end-w-nl:" style-vec)
+  #_(prn "ensure-end-w-nl:" style-vec)
   (let [element-type (nth (last style-vec) 2)]
-    (prn "ensure-end-w-nl:" element-type)
+    #_(prn "ensure-end-w-nl:" element-type)
     (if (or (= element-type :newline) (= element-type :indent))
       style-vec
       (concat-no-nil style-vec [[(str "\n" (blanks ind)) :none :indent]]))))
@@ -3296,7 +3296,8 @@
 					  hindent
 					  seq-right
 					  :force-nl
-					  :nl-first)
+					  nil ;nl-first?
+					  )
 
 
                         #_(apply concat-no-nil
