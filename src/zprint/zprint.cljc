@@ -2051,9 +2051,9 @@
 (defn fzprint-one-line
   "Do a fzprint-seq like thing, but do it incrementally and
   if it gets too big, return nil."
-  [options ind zloc]
+  [options ind zloc-seq]
   (dbg-print options "fzprint-one-line:")
-  (let [seq-right (zmap identity zloc)
+  (let [seq-right zloc-seq
         len (count seq-right)
         last-index (dec len)
         gt-1? (> (count seq-right) 1)
@@ -4284,7 +4284,7 @@
         one-line (if (zero? len)
                    :empty
                    (when one-line-ok?
-                     (fzprint-one-line options one-line-ind zloc)))]
+                     (fzprint-one-line options one-line-ind zloc-seq)))]
     (cond
       one-line (if (= one-line :empty)
                  (concat-no-nil l-str-vec r-str-vec)
