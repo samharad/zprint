@@ -4625,7 +4625,7 @@
 	  pre-arg-1-style-vec
           (fzprint* loptions (+ l-str-len ind) arg-1-zloc)
           (if (and arg-1-indent (not= fn-style :flow))
-            (fzprint-hang-remaining-new caller
+            (let [result (fzprint-hang-remaining-new caller
                                     (noarg1 options fn-style)
                                     arg-1-indent
                                     (+ indent ind indent-adj)
@@ -4633,7 +4633,9 @@
 				    ; doesn't take a seq
 	                            (get-zloc-seq-right up-to-second-data 0)
                                     ;(znthnext zloc 0)
-                                    fn-style)
+                                    fn-style)]
+               (dbg-pr options "fzprint-list*: r-str-vec:" r-str-vec "result:" result)
+	       result)
             ; This might be a collection as the first thing, or it
             ; might be a :flow type.  Do different indents for these.
             (let [local-indent (if (= fn-style :flow)
@@ -4703,6 +4705,7 @@
                                 (and (if multi? (= linecnt 1) true)
                                      (<= (+ cur-ind len) width))))
                   new-ind (cond
+			    ; Comments cause an overflow of the size
                             (or (= (nth (first this-seq) 2) :comment)
                                 (= (nth (first this-seq) 2) :comment-inline))
                               (inc width)
@@ -4931,11 +4934,13 @@
   [indent coll not-first?]
   (loop [coll coll
          out (transient [])
-         added-nl? not-first?]
+         added-nl? not-first?
+	 previous-comment? nil]
     (if (empty? coll)
       (let [result (persistent! out)]
         #_(prn "precede-w-nl: exit:" result)
-	result)
+	(if previous-comment? (butlast result)
+	result))
       (let [[[s color what] :as element] (first coll)
             ; This element may have many things in it, or sometimes
             ; just one.
@@ -4978,7 +4983,8 @@
                                element))))
                ; Is there a newline as the last thing we just did?
                ; Two ways for that to happen.
-               (or newline? comment?))))))
+               (or newline? comment?)
+	       comment?)))))
 
 ; transient helped a lot here
 

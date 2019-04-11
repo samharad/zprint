@@ -491,10 +491,60 @@
 ; This change came when we started to correctly recognize functions
 ; even though they were preceded by comments and/or newlines.
 (expect 
-"(;a\n list :b\n      :c\n      ;def\n      \n  )"
+"(;a\n list :b\n      :c\n      ;def\n  )"
 ;"(;a\n list\n :b\n :c\n ;def\n  )"
         (zprint-str "(;a\nlist\n:b\n:c ;def\n)"
                     {:parse-string? true, :comment {:inline? false}}))
+
+;;
+;; # Comments at the end of sequences
+;;
+
+
+;(list a
+;      b ;def
+;  )
+
+(expect "(list a\n      b ;def\n  )"
+        (zprint-str "(list a b ;def\n)"
+                    {:parse-string? true, :comment {:inline? true}}))
+
+;(list a
+;      b
+;      ;def
+;  )
+
+(expect "(list a\n      b\n      ;def\n  )"
+        (zprint-str "(list a b ;def\n)"
+                    {:parse-string? true, :comment {:inline? false}}))
+;[list a b ;def
+;]
+
+(expect "[list a b ;def\n]"
+        (zprint-str "[list a b ;def\n]"
+                    {:parse-string? true, :comment {:inline? true}}))
+
+;[list a b ;def
+;]
+
+(expect "[list a b ;def\n]"
+        (zprint-str "[list a b ;def\n]"
+                    {:parse-string? true, :comment {:inline? false}}))
+
+;{a b, ;def
+; }
+
+(expect "{a b, ;def\n }"
+        (zprint-str "{ a b ;def\n}"
+                    {:parse-string? true, :comment {:inline? true}}))
+
+;{a b,
+; ;def
+; }
+(expect
+"{a b,\n ;def\n }"
+(zprint-str "{ a b ;def\n}" {:parse-string? true :comment {:inline? false}}))
+
 
 (expect [6 1 8 1 9 1 11]
         (zprint.zprint/line-lengths
