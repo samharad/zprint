@@ -4834,7 +4834,10 @@
                     "fzprint-vec*: new-ind:" new-ind
                     "one-line:" one-line)
           one-line-lines (style-lines options new-ind one-line)]
-      (if (zero? len)
+      ; While this seems a reasonable optimization, we have 7 tests that
+      ; expect a ["" :none :whitespace] in an empty vector, and this isn't
+      ; the time to try to fix all of the tests.
+      (if false ;(zero? len)
         (concat-no-nil l-str-vec r-str-vec)
         (when one-line-lines
           (if (fzfit-one-line options one-line-lines)

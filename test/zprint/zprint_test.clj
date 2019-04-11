@@ -488,7 +488,11 @@
      ["\"stuff\"" :red :element] [")" :green :right]
      ["\n            " :none :whitespace] ["\"bother\"" :red :element]]))
 
-(expect "(;a\n list\n :b\n :c\n ;def\n  )"
+; This change came when we started to correctly recognize functions
+; even though they were preceded by comments and/or newlines.
+(expect 
+"(;a\n list :b\n      :c\n      ;def\n      \n  )"
+;"(;a\n list\n :b\n :c\n ;def\n  )"
         (zprint-str "(;a\nlist\n:b\n:c ;def\n)"
                     {:parse-string? true, :comment {:inline? false}}))
 
@@ -566,8 +570,15 @@
   "(defn zctest4\n  \"Test comment forcing things\"\n  [x]\n  (cond\n    (and (list :c\n               (identity \"stuff\")\n               \"bother\"))\n      x\n    :else (or :a :b :c)))"
   (zprint-fn-str zprint.zprint-test/zctest4 40 {:pair-fn {:hang? nil}}))
 
+; When :respect-nl? was added for lists, this changed because if you
+; have a newline following the "list", then you don't want to hang the
+; rest of the things because it looks bad.  And so comments got the same
+; treatment.
 (expect
-  "(defn zctest3\n  \"Test comment forcing things\"\n  [x]\n  (cond\n    (and (list ;\n               (identity \"stuff\")\n               \"bother\"))\n      x\n    :else (or :a :b :c)))"
+  "(defn zctest3\n  \"Test comment forcing things\"\n  [x]\n  (cond\n    (and (list ;\n           (identity \"stuff\")\n           \"bother\"))\n      x\n    :else (or :a :b :c)))"
+  ;  "(defn zctest3\n  \"Test comment forcing things\"\n  [x]\n  (cond\n    (and
+  ;  (list ;\n               (identity \"stuff\")\n               \"bother\"))\n
+  ;       x\n    :else (or :a :b :c)))"
   (zprint-fn-str zprint.zprint-test/zctest3 40 {:pair-fn {:hang? nil}}))
 
 (expect
