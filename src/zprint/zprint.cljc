@@ -3423,7 +3423,7 @@
 ;; # Find out and print what comes before the next element
 ;;
 
-(defn fzprint-zloc-seq
+(defn fzprint-get-zloc-seq
   "Get the zloc seq, with or without newlines, as indicated by the options."
   [caller options zloc]
   (if (:respect-nl? (caller options))
@@ -3482,7 +3482,7 @@
       (concat fzprint*-return [[(str "\n" (blanks indent)) :none :newline]])
       fzprint*-return)))
 
-(defn fzprint-up-to-next-zloc
+(defn fzprint-up-to-next-zloc-orig
   "Take a current position, and move right, turning any comments
   and (possibly) newlines into style-vec elements, and keeping track
   of the ind and number of things passed while doing so.  Returns
@@ -3495,7 +3495,7 @@
   NOTE: This is only called for zippers!!!"
   ([caller options hindent findent zloc skip-first?]
    (dbg-pr options
-           "fzprint-up-to-next-zloc: hindent:" hindent
+           "fzprint-up-to-next-zloc-orig: hindent:" hindent
            "findent:" findent
            "skip-first?:" skip-first?
            "zloc:" (zstring zloc))
@@ -3516,7 +3516,7 @@
          next-count (if skip-first? (inc next-count) next-count)]
      (dbg-form
        options
-       "fzprint-up-to-next-zloc exit:"
+       "fzprint-up-to-next-zloc-orig exit:"
        (if (empty? zloc-seq)
          [hindent :noseq next-zloc next-count]
          ; By definition, everything in zloc-seq will contain newlines
@@ -3535,7 +3535,7 @@
 	       ; NOTE: we might be removing the only hang after a comment,
 	       ; and so we need to check for that and not hang.
                _ (dbg-pr options
-                         "fzprint-up-to-next-zloc: coll-print:"
+                         "fzprint-up-to-next-zloc-orig: coll-print:"
                          coll-print)
                coll-print
                  (if skip-first? (remove-last-newline coll-print) coll-print)
@@ -3544,13 +3544,15 @@
            ; coll-print should never be :noseq or nil here
            ; TODO: take out the coll? coll-print below because of this
            (dbg-pr options
-                   "fzprint-up-to-next-zloc: newline-last?" newline-last?
+                   "fzprint-up-to-next-zloc-orig: newline-last?" newline-last?
                    "coll-print:" coll-print)
            [findent
             (concat-no-nil (if (or newline-first? (not skip-first?))
                              :noseq
-                             (if (= (nth (first (first coll-print)) 2)
-                                    :comment-inline)
+                             (if (or (= (nth (first (first coll-print)) 2)
+                                        :comment-inline)
+                                     (= (nth (first (first coll-print)) 2)
+                                        :comment))
                                [[(str "\n" (blanks findent)) :none :indent]]
                                [[" " :none :none]]))
                            (apply concat-no-nil coll-print)
@@ -3566,7 +3568,7 @@
                              [[(str "\n" (blanks findent)) :none :indent]]
                              :noseq)) next-zloc next-count])))))
   ([caller options hindent findent zloc]
-   (fzprint-up-to-next-zloc caller options hindent findent zloc :skip-first)))
+   (fzprint-up-to-next-zloc-orig caller options hindent findent zloc :skip-first)))
 
 (defn fzprint-up-to-second-zloc
   "Returns [[pre-first-style-vec pre-second-style-vec]
@@ -3574,17 +3576,17 @@
             [next-to-first next-to-second]
 	    zloc-seq] 
   where the style vecs will be :noseq if there is nothing to do.
-  Note that newlines will be included in the sytle-vecs, next-to-
+  Note that newlines will be included in the style-vecs, next-to-
   counts, and zloc-seq if (:respect-nl? (caller options)) is non-nil."
   [caller options ind zloc]
   (if-not (= (:ztype options) :zipper) 
     [[:noseq :noseq] [(first zloc) (second zloc)] [0 1] zloc]
     (let [[first-ind pre-first-style-vec first-zloc first-count]
-            (fzprint-up-to-next-zloc caller options ind ind (zstart zloc) false)
+            (fzprint-up-to-next-zloc-orig caller options ind ind (zstart zloc) false)
           ;; How to handle the new-ind stuff -- who does arg-1-indent?
-          ;; fzprint-up-to-next-zloc?  This routine?
+          ;; fzprint-up-to-next-zloc-orig?  This routine?
           [second-ind pre-second-style-vec second-zloc second-count]
-            (fzprint-up-to-next-zloc caller
+            (fzprint-up-to-next-zloc-orig caller
                                      options
                                      first-ind
                                      ind
@@ -3592,7 +3594,94 @@
                                      true)]
       [[pre-first-style-vec pre-second-style-vec] [first-zloc second-zloc]
        [first-count (+ first-count second-count)]
-       (fzprint-zloc-seq caller options zloc)])))
+       (fzprint-get-zloc-seq caller options zloc)])))
+
+(defn gather-up-to-next-zloc
+  "Given a zloc-seq, gather newlines and comments up to the next
+  zloc into a seq.  Returns [seq next-zloc next-count]."
+  [zloc-seq]
+  (loop [nloc-seq zloc-seq
+         out []
+         next-count 0]
+    (if (not (newline-or-comment? (first nloc-seq)))
+      [out (first nloc-seq) next-count]
+      (recur (next nloc-seq) 
+             (conj out (first nloc-seq)) 
+	     (inc next-count)))))
+
+
+(defn fzprint-up-to-next-zloc
+  "Using the information returned from fzprint-up-to-first-zloc or
+  fzprint-up-to-next-zloc, find the next zloc and return 
+  [pre-next-style-vec next-zloc next-count zloc-seq]"
+  [caller options ind [_ _ current-count zloc-seq :as next-data]]
+  (let [starting-count (inc current-count)
+        nloc-seq (nthnext zloc-seq starting-count)]
+    (if-not (= (:ztype options) :zipper)
+      [:noseq (first nloc-seq) 0 zloc-seq]
+      (let [[pre-next-zloc-seq next-zloc next-count] (gather-up-to-next-zloc
+                                                       nloc-seq)
+            next-count (+ starting-count next-count)]
+        (if (empty? pre-next-zloc-seq)
+          ; The normal case -- nothing before the first interesting zloc
+          [:noseq next-zloc next-count zloc-seq]
+          ; There were newlines or comments (or both) before the first
+          ; interesting zloc
+          (let [coll-print (fzprint-seq options ind pre-next-zloc-seq)
+                ; We need to make comments print right, and they have lost their
+                ; newlines
+                coll-print (map (partial add-newline-to-comment ind) coll-print)
+                ; We aren't trying to interpose anything here, we are just
+                ; trying to print the stuff we have in a way that will work.
+                coll-out (apply concat-no-nil coll-print)
+                ; Make sure it ends with a newline, since all comments and
+                ; newlines better end with a newline.  But how could it
+                ; not end with a newline?  We only put comments and newlines
+                ; in here, and added newlines to comments.
+                #_#_coll-out (ensure-end-w-nl ind coll-out)]
+            [coll-out next-zloc next-count zloc-seq]))))))
+
+(defn fzprint-up-to-first-zloc
+  "Returns [pre-first-style-vec first-zloc first-count zloc-seq], where
+  pre-first-style-vec will be :noseq if there isn't anything, and first-count
+  is what you give to nthnext to get to the first-zloc in zloc-seq."
+  [caller options ind zloc]
+  (if-not (= (:ztype options) :zipper)
+    [:noseq (first zloc) 0 zloc]
+    (let [zloc-seq (fzprint-get-zloc-seq caller options zloc)]
+      ; Start at -1 so that when fzprint-up-to-next-zloc skips, it goes
+      ; to zero.
+      (fzprint-up-to-next-zloc caller options ind [nil nil -1 zloc-seq]))))
+
+(defn fzprint-up-to-first-zloc-alt
+  "Returns [pre-first-style-vec first-zloc first-count zloc-seq], where
+  pre-first-style-vec will be :noseq if there isn't anything, and first-count
+  is what you give to nthnext to get to the first-zloc in zloc-seq."
+  [caller options ind zloc]
+  (if-not (= (:ztype options) :zipper)
+    [:noseq (first zloc) 0 zloc]
+    (let [zloc-seq (fzprint-get-zloc-seq caller options zloc)
+          [pre-first-zloc-seq first-zloc first-count] (gather-up-to-next-zloc
+                                                        zloc-seq)]
+      (if (empty? pre-first-zloc-seq)
+        ; The normal case -- nothing before the first interesting zloc
+        [:noseq first-zloc first-count zloc-seq]
+        ; There were newlines or comments (or both) before the first
+        ; interesting zloc
+        (let [coll-print (fzprint-seq options ind pre-first-zloc-seq)
+              ; We need to make comments print right, and they have lost their
+              ; newlines
+              coll-print (map (partial add-newline-to-comment ind) coll-print)
+              ; We aren't trying to interpose anything here, we are just
+              ; trying to print the stuff we have in a way that will work.
+              coll-out (apply concat-no-nil coll-print)
+              ; Make sure it ends with a newline, since all comments and
+              ; newlines better end with a newline.  But how could it
+              ; not end with a newline?  We only put comments and newlines
+              ; in here, and added newlines to comments.
+              #_#_coll-out (ensure-end-w-nl ind coll-out)]
+          [coll-out first-zloc first-count zloc-seq])))))
+
 
 #_(defn count-style-vecs
   "Given a seq of style vecs, count the number of zlocs that went
@@ -4159,13 +4248,50 @@
          [arg-1-count arg-2-count] zloc-seq :as up-to-second-data]
           (fzprint-up-to-second-zloc caller options (+ ind l-str-len) zloc)
         ;; TODO: Change (zfirst-no-comment zloc) to arg-1-zloc below
+	[pre-first-style-vec first-zloc first-count _ :as first-data]
+	  (fzprint-up-to-first-zloc caller options (+ ind l-str-len) zloc)
+	[pre-second-style-vec second-zloc second-count _ :as second-data]
+	  ; The ind is wrong, need arg-1-indent, but we don't have it yet.
+	  (fzprint-up-to-next-zloc caller options (+ ind l-str-len) first-data)
+
         _ (dbg-pr options
                   "fzprint-list* pre-arg-1-style-vec:" pre-arg-1-style-vec
+		  "= pre-first?" (= pre-arg-1-style-vec pre-first-style-vec)
+		  "pre-first-style-vec:" pre-first-style-vec
                   "pre-arg-2-style-vec:" pre-arg-2-style-vec
+		  "= pre-second?" (= pre-arg-2-style-vec pre-second-style-vec)
                   "arg-1-zloc:" (zstring arg-1-zloc)
+		  "first-zloc:" (zstring first-zloc)
                   "arg-2-zloc:" (zstring arg-2-zloc)
+		  "second-zloc:" (zstring second-zloc)
                   "arg-1-count:" arg-1-count
-                  "arg-2-count:" arg-2-count)
+		  "first-count:" first-count
+                  "arg-2-count:" arg-2-count
+		  "second-count:" second-count)
+
+	; TODO: TAKE THIS OUT!
+	_ (when-not (and (= pre-arg-1-style-vec pre-first-style-vec)
+			 (= pre-arg-2-style-vec pre-second-style-vec)
+	                 (= arg-1-zloc first-zloc)
+			 (= arg-1-count first-count)
+			 (= arg-2-zloc second-zloc)
+			 (= arg-2-count second-count))
+             (prn
+                  "fzprint-list* pre-arg-1-style-vec:" pre-arg-1-style-vec
+		  "pre-first-style-vec:" pre-first-style-vec
+		  "= pre-first?" (= pre-arg-1-style-vec pre-first-style-vec)
+                  "pre-arg-2-style-vec:" pre-arg-2-style-vec
+		  "pre-second-style-vec:" pre-second-style-vec
+		  "= pre-second?" (= pre-arg-2-style-vec pre-second-style-vec)
+                  "arg-1-zloc:" (zstring arg-1-zloc)
+		  "first-zloc:" (zstring first-zloc)
+                  "arg-2-zloc:" (zstring arg-2-zloc)
+		  "second-zloc:" (zstring second-zloc)
+                  "arg-1-count:" arg-1-count
+		  "first-count:" first-count
+                  "arg-2-count:" arg-2-count
+		  "second-count:" second-count))
+
         arg-1-coll? (not (or (zkeyword? (zfirst-no-comment zloc))
                              (zsymbol? (zfirst-no-comment zloc))))
         ; Use an alternative arg-1-indent if the fn-style is forced on input
@@ -4340,7 +4466,7 @@
 				  :newline-first)
                 r-str-vec)
               r-str-vec)))
-      #_(let [[new-ind pre-binding-style-vec next-zloc] (fzprint-up-to-next-zloc
+      #_(let [[new-ind pre-binding-style-vec next-zloc] (fzprint-up-to-next-zloc-orig
                                                           options
                                                           arg-1-indent
                                                           (+ indent ind)
@@ -5902,7 +6028,8 @@
                         ; types that don't go away
                         inline-spaces (when (:inline? (:comment options))
                                         (zinlinecomment? zloc))]
-                    (dbg options "fzprint* trim-comments?:" trim-comments?)
+                    (dbg options "fzprint* trim-comments?:" trim-comments?
+		                 "inline-spaces:" inline-spaces)
                     (if (and (:count? (:comment options)) overflow-in-hang?)
                       (do (dbg options "fzprint*: overflow comment ========")
                           nil)
@@ -6070,6 +6197,7 @@
   "Try to bring inline comments back onto the line on which they belong."
   [{:keys [width], :as options} style-vec]
   #_(def fic style-vec)
+  (dbg-pr options "fzprint-inline-comments:" style-vec)
   (loop [cvec style-vec
          out []]
     (if-not cvec
