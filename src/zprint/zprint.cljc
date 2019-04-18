@@ -3618,7 +3618,7 @@
   (let [starting-count (inc current-count)
         nloc-seq (nthnext zloc-seq starting-count)]
     (if-not (= (:ztype options) :zipper)
-      [:noseq (first nloc-seq) 0 zloc-seq]
+      [:noseq (first nloc-seq) starting-count zloc-seq]
       (let [[pre-next-zloc-seq next-zloc next-count] (gather-up-to-next-zloc
                                                        nloc-seq)
             next-count (+ starting-count next-count)]
@@ -3633,7 +3633,25 @@
                 coll-print (map (partial add-newline-to-comment ind) coll-print)
                 ; We aren't trying to interpose anything here, we are just
                 ; trying to print the stuff we have in a way that will work.
+                ; Remove the last newline if we are not the first thing
+                coll-print (if (not= starting-count 0)
+                           (remove-last-newline coll-print)
+			   coll-print)
                 coll-out (apply concat-no-nil coll-print)
+                ; If we are down inside a list and  the first thing is a
+                ; comment, ensure we start with a newline.  If it is an
+                ; inline comment, then it will get fixed later.
+                coll-out (if (and (not= starting-count 0)
+                                  (let [first-type (nth (first coll-out) 2)]
+                                    (or (= first-type :comment)
+                                        (= first-type :comment-inline))))
+                           (ensure-start-w-nl ind coll-out)
+                           coll-out)
+                ; Eensure that we end with a newline if we are the first
+                ; thing
+                coll-out (if (not= starting-count 0)
+                           coll-out
+                           (ensure-end-w-nl ind coll-out))
                 ; Make sure it ends with a newline, since all comments and
                 ; newlines better end with a newline.  But how could it
                 ; not end with a newline?  We only put comments and newlines
@@ -4256,9 +4274,10 @@
 
         _ (dbg-pr options
                   "fzprint-list* pre-arg-1-style-vec:" pre-arg-1-style-vec
-		  "= pre-first?" (= pre-arg-1-style-vec pre-first-style-vec)
 		  "pre-first-style-vec:" pre-first-style-vec
+		  "= pre-first?" (= pre-arg-1-style-vec pre-first-style-vec)
                   "pre-arg-2-style-vec:" pre-arg-2-style-vec
+                  "pre-second-style-vec:" pre-second-style-vec
 		  "= pre-second?" (= pre-arg-2-style-vec pre-second-style-vec)
                   "arg-1-zloc:" (zstring arg-1-zloc)
 		  "first-zloc:" (zstring first-zloc)
@@ -4277,7 +4296,8 @@
 			 (= arg-2-zloc second-zloc)
 			 (= arg-2-count second-count))
              (prn
-                  "fzprint-list* pre-arg-1-style-vec:" pre-arg-1-style-vec
+                  "fzprint-list* zloc:" (zstring zloc)
+		  "pre-arg-1-style-vec:" pre-arg-1-style-vec
 		  "pre-first-style-vec:" pre-first-style-vec
 		  "= pre-first?" (= pre-arg-1-style-vec pre-first-style-vec)
                   "pre-arg-2-style-vec:" pre-arg-2-style-vec

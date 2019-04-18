@@ -3018,3 +3018,156 @@ ser/collect-vars-acc %1 %2) )))"
         (zprint-str "{:a :b :c #:m{:c/e :f :x/g :h}}"
                     {:parse-string? true,
                      :map {:lift-ns? false, :unlift-ns? true}}))
+;; # Tests for comments mixed in with the early part of lists 
+;;
+
+(expect "(;stuff\n let;bother\n  [a :x\n   b :y];foo\n  ;bar\n  ;baz\n  5)"
+        (zprint-str "(;stuff\n\nlet;bother\n[a :x b :y];foo\n;bar\n\n;baz\n5)"
+                    {:parse-string? true}))
+
+(expect "(;stuff\n let;bother\n  [a :x\n   b :y]\n  (nil? nil)\n  5)"
+        (zprint-str "(;stuff\n\nlet;bother\n[a :x b :y](nil? nil) 5)"
+                    {:parse-string? true}))
+
+
+(expect "(;stuff\n let;bother\n  [a :x\n   b :y] ;foo\n  ;bar\n  ;baz\n  5)"
+        (zprint-str "( ;stuff\n\nlet;bother\n[a :x b :y] ;foo\n;bar\n\n;baz\n5)"
+                    {:parse-string? true}))
+
+(expect "(;stuff\n let;bother\n  [a :x\n   b :y];foo\n  ;bar\n  ;baz\n  5)"
+        (zprint-str "( ;stuff\n\nlet;bother\n[a :x b :y];foo\n;bar\n\n;baz\n5)"
+                    {:parse-string? true}))
+
+(expect "(;stuff\n let ;bother\n  [a :x\n   b :y]  ;foo\n  ;bar\n  ;baz\n  5)"
+        (zprint-str
+          "( ;stuff\n\nlet ;bother\n[a :x b :y]  ;foo\n;bar\n\n;baz\n5)"
+          {:parse-string? true}))
+
+(expect
+  "(;stuff\n let ;bother\n  [a :x\n   b :y]\n  (list a b)\n  (map a b)\n  5)"
+  (zprint-str "( ;stuff\n\nlet ;bother\n[a :x b :y]\n(list a b)\n(map a b)\n5)"
+              {:parse-string? true}))
+
+(expect
+  "(;stuff\n let ;bother\n  [a :x\n   b :y]\n  (list a b)\n  (map a b)\n  (should be blank before this)\n  5)"
+  (zprint-str
+    "( ;stuff\n\nlet ;bother\n[a :x b :y]\n(list a b)\n(map a b)\n\n(should be blank before this)\n5)"
+    {:parse-string? true}))
+
+;;
+;; # :respect-nl? tests
+;;
+;; These tests are for :respect-nl?
+;;
+
+(expect
+  "(;stuff\n \n let;bother\n  [a :x\n   b :y];foo\n  ;bar\n  \n  ;baz\n  5)"
+  (zprint-str "(;stuff\n\nlet;bother\n[a :x b :y];foo\n;bar\n\n;baz\n5)"
+              {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect "(;stuff\n \n let;bother\n  [a :x\n   b :y]\n  (nil? nil)\n  5)"
+        (zprint-str "(;stuff\n\nlet;bother\n[a :x b :y](nil? nil) 5)"
+                    {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(;stuff\n \n let;bother\n  [a :x\n   b :y] ;foo\n  ;bar\n  \n  ;baz\n  5)"
+  (zprint-str "( ;stuff\n\nlet;bother\n[a :x b :y] ;foo\n;bar\n\n;baz\n5)"
+              {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(;stuff\n \n let;bother\n  [a :x\n   b :y];foo\n  ;bar\n  \n  ;baz\n  5)"
+  (zprint-str "( ;stuff\n\nlet;bother\n[a :x b :y];foo\n;bar\n\n;baz\n5)"
+              {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(;stuff\n \n let ;bother\n  [a :x\n   b :y]  ;foo\n  ;bar\n  \n  ;baz\n  5)"
+  (zprint-str "( ;stuff\n\nlet ;bother\n[a :x b :y]  ;foo\n;bar\n\n;baz\n5)"
+              {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(;stuff\n \n let ;bother\n  [a :x\n   b :y]\n  (list a b)\n  (map a b)\n  5)"
+  (zprint-str "( ;stuff\n\nlet ;bother\n[a :x b :y]\n(list a b)\n(map a b)\n5)"
+              {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(;stuff\n \n let ;bother\n  [a :x\n   b :y]\n  (list a b)\n  (map a b)\n  \n  (should be blank before this)\n  5)"
+  (zprint-str
+    "( ;stuff\n\nlet ;bother\n[a :x b :y]\n(list a b)\n(map a b)\n\n(should be blank before this)\n5)"
+    {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(this is\n      a\n      test\n      (;stuff\n       \n       let ;bother\n        [a :x\n         b :y]\n        \n        (list a b)\n        (map a b)\n        \n        (should be blank before this)\n        5))"
+  (zprint-str
+    "(this is a test\n( ;stuff\n\nlet ;bother\n[a :x b :y]\n\n(list a b)\n(map a b)\n\n(should be blank before this)\n5))"
+    {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(this is\n      a\n      test\n      (;stuff\n       \n       let [a :x\n            b :y]\n        \n        (list a b)\n        (map a b)\n        \n        (should be blank before this)\n        5))"
+  (zprint-str
+    "(this is a test\n( ;stuff\n\nlet [a :x b :y]\n\n(list a b)\n(map a b)\n\n(should be blank before this)\n5))"
+    {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(this is\n      a\n      test\n      (;stuff\n       \n       let [a :x\n            b :y]\n        \n        (list a b)\n        (map a b)\n        \n        (should be blank before this) ;more stuff\n        (list :a :b) ;bother\n        \n        (should also be a blank line before this)\n        5))"
+  (zprint-str
+    "(this is a test\n( ;stuff\n\nlet [a :x b :y]\n\n(list a b)\n(map a b)\n\n(should be blank before this) ;more stuff\n(list :a :b) ;bother\n\n(should also be a blank line before this)\n5))"
+    {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(;stuff\n cond\n  \n  (= a 1) ;bother\n    (good stuff)\n  (not= b 2) (bad stuff)\n  :else\n    \n    (remaining stuff))"
+  (zprint-str
+    "(;stuff\n cond\n  \n  (= a 1) ;bother\n    (good stuff)\n  (not= b 2) (bad stuff)\n  :else\n    \n    (remaining stuff))"
+    {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect "{:a :b, :c :d, :e :f}"
+        (zprint-str "{:a :b :c :d :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}}))
+
+(expect "{:a :b,\n :c :d,\n :e :f}"
+        (zprint-str "{:a :b :c :d :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true} :width 15}))
+
+(expect "{:a\n   :b,\n :c :d,\n :e :f}"
+        (zprint-str "{:a \n :b :c :d :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 15}))
+
+(expect "{:a :b,\n :c :d,\n :e :f}"
+        (zprint-str "{:a :b \n :c :d :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 15}))
+
+(expect "{:a :b,\n \n :c :d,\n :e :f}"
+        (zprint-str "{:a :b \n\n :c :d :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 15}))
+
+(expect "{:a\n   \n   :b,\n :c :d,\n :e :f}"
+        (zprint-str "{:a \n\n :b \n :c :d \n :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 15}))
+
+(expect "{:a\n   \n   :b,\n :c :d,\n :e :f}"
+        (zprint-str "{:a \n\n :b \n :c :d \n :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 80}))
+
+(expect "{;stuff\n :a :b, ;bother\n :c :d,\n :e :f}"
+        (zprint-str "{;stuff\n :a :b ;bother\n :c :d \n :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 15}))
+
+(expect "{;stuff\n :a :b, ;bother\n :c :d,\n :e :f}"
+        (zprint-str "{;stuff\n :a :b ;bother\n :c :d \n :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 80}))
+
+(expect "{;stuff\n \n :a :b, ;bother\n :c\n   \n   :d,\n :e :f}"
+        (zprint-str "{;stuff\n\n :a :b ;bother\n :c \n\n :d \n :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 15}))
+
+(expect "{;stuff\n \n :a :b, ;bother\n :c\n   \n   :d,\n :e :f}"
+        (zprint-str "{;stuff\n\n :a :b ;bother\n :c \n\n :d \n :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 80}))
+
+(expect "{;stuff\n \n :a :b,\n :c ;bother\n   \n   :d, ;foo\n \n :e :f}"
+        (zprint-str "{;stuff\n\n :a :b :c ;bother\n\n :d ;foo\n\n :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 15}))
+
+(expect "{;stuff\n \n :a :b,\n :c ;bother\n   \n   :d, ;foo\n \n :e :f}"
+        (zprint-str "{;stuff\n\n :a :b :c ;bother\n\n :d ;foo\n\n :e :f}"
+                    {:parse-string? true, :map {:respect-nl? true}, :width 80}))
+
