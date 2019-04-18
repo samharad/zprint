@@ -3107,10 +3107,18 @@ ser/collect-vars-acc %1 %2) )))"
     "(this is a test\n( ;stuff\n\nlet [a :x b :y]\n\n(list a b)\n(map a b)\n\n(should be blank before this)\n5))"
     {:parse-string? true, :list {:respect-nl? true}}))
 
+;;
+;; If we do it twice, does it change?
+;;
+
 (expect
-  "(this is\n      a\n      test\n      (;stuff\n       \n       let [a :x\n            b :y]\n        \n        (list a b)\n        (map a b)\n        \n        (should be blank before this) ;more stuff\n        (list :a :b) ;bother\n        \n        (should also be a blank line before this)\n        5))"
   (zprint-str
     "(this is a test\n( ;stuff\n\nlet [a :x b :y]\n\n(list a b)\n(map a b)\n\n(should be blank before this) ;more stuff\n(list :a :b) ;bother\n\n(should also be a blank line before this)\n5))"
+    {:parse-string? true, :list {:respect-nl? true}})
+  (zprint-str
+    (zprint-str
+      "(this is a test\n( ;stuff\n\nlet [a :x b :y]\n\n(list a b)\n(map a b)\n\n(should be blank before this) ;more stuff\n(list :a :b) ;bother\n\n(should also be a blank line before this)\n5))"
+      {:parse-string? true, :list {:respect-nl? true}})
     {:parse-string? true, :list {:respect-nl? true}}))
 
 (expect
@@ -3170,4 +3178,20 @@ ser/collect-vars-acc %1 %2) )))"
 (expect "{;stuff\n \n :a :b,\n :c ;bother\n   \n   :d, ;foo\n \n :e :f}"
         (zprint-str "{;stuff\n\n :a :b :c ;bother\n\n :d ;foo\n\n :e :f}"
                     {:parse-string? true, :map {:respect-nl? true}, :width 80}))
+;;
+;; Do things change when we do it twice?
+;;
+
+(expect
+  (zprint-str "{;stuff\n\n :a :b :c ;bother\n\n :d ;foo\n\n :e :f}"
+              {:parse-string? true, :map {:respect-nl? true}, :width 80})
+  (zprint-str (zprint-str
+                "{;stuff\n\n :a :b :c ;bother\n\n :d ;foo\n\n :e :f}"
+                {:parse-string? true, :map {:respect-nl? true}, :width 80})
+              {:parse-string? true, :map {:respect-nl? true}, :width 80}))
+
+
+
+
+
 
