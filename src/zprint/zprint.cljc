@@ -3721,6 +3721,20 @@
     (let [zloc-seq (nthnext full-zloc-seq (inc (nth next-count-seq n)))]
       (dbg-pr "get-zloc-seq-right:" (map zstring zloc-seq))
       zloc-seq)))
+
+(defn get-zloc-seq-right
+  "Using return from up-to-second (or fzprint-beyond-second) return a
+  zloc-seq pointer to just beyond a specific zloc, n. Note that n is
+  zero based, so for zfirst, use 0, zsecond, use 1."
+  [[style-vec-seq arg-zloc-seq next-count-seq full-zloc-seq :as up-to-data] n]
+  (if (>= n (count next-count-seq))
+    (throw (#?(:clj Exception.
+               :cljs js/Error.)
+            (str "get-zloc-seq-right request for:" n
+                 "greater than length of arg-zloc-seq:" (count arg-zloc-seq))))
+    (let [zloc-seq (nthnext full-zloc-seq (inc (nth next-count-seq n)))]
+      (dbg-pr "get-zloc-seq-right:" (map zstring zloc-seq))
+      zloc-seq)))
 	  
 ;;
 ;; # Indent-only support
@@ -4266,13 +4280,17 @@
          [arg-1-count arg-2-count] zloc-seq :as up-to-second-data]
           (fzprint-up-to-second-zloc caller options (+ ind l-str-len) zloc)
         ;; TODO: Change (zfirst-no-comment zloc) to arg-1-zloc below
-	[pre-first-style-vec first-zloc first-count _ :as first-data]
+	#_#_[pre-arg-1-style-vec arg-1-zloc arg-1-count zloc-seq 
+	 :as up-to-first-data]
 	  (fzprint-up-to-first-zloc caller options (+ ind l-str-len) zloc)
-	[pre-second-style-vec second-zloc second-count _ :as second-data]
+	#_#_[pre-arg-2-style-vec arg-2-zloc arg-2-count _ :as up-to-second-data]
 	  ; The ind is wrong, need arg-1-indent, but we don't have it yet.
-	  (fzprint-up-to-next-zloc caller options (+ ind l-str-len) first-data)
+	  (fzprint-up-to-next-zloc caller 
+	                           options 
+				   (+ ind l-str-len)
+	                           up-to-first-data)
 
-        _ (dbg-pr options
+        #_(dbg-pr options
                   "fzprint-list* pre-arg-1-style-vec:" pre-arg-1-style-vec
 		  "pre-first-style-vec:" pre-first-style-vec
 		  "= pre-first?" (= pre-arg-1-style-vec pre-first-style-vec)
@@ -4289,7 +4307,7 @@
 		  "second-count:" second-count)
 
 	; TODO: TAKE THIS OUT!
-	_ (when-not (and (= pre-arg-1-style-vec pre-first-style-vec)
+	#_(when-not (and (= pre-arg-1-style-vec pre-first-style-vec)
 			 (= pre-arg-2-style-vec pre-second-style-vec)
 	                 (= arg-1-zloc first-zloc)
 			 (= arg-1-count first-count)
@@ -4350,8 +4368,7 @@
         indent (+ indent (dec l-str-len))
         one-line-ok? (allow-one-line? options len fn-style)
         one-line-ok? (when-not indent-only? one-line-ok?)
-	one-line-ok? (if (or (not= pre-arg-1-style-vec :noseq)
-	                     (not= pre-arg-2-style-vec :noseq))
+	one-line-ok? (if (not= pre-arg-1-style-vec :noseq)
 			nil
 			one-line-ok?)
         ; remove -body from fn-style if it was there
