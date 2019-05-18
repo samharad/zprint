@@ -2909,7 +2909,8 @@ ser/collect-vars-acc %1 %2) )))"
                          {:parse {:interpose "\n\n"}}))
 
 ;;
-;; Issue ??
+;; Issue ??  where someone didn't want to require something after the
+;; let locals vector for it to be recognized as a let.
 ;;
 
 (expect "(let [a b\n      c d\n      e f])"
