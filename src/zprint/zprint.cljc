@@ -3570,6 +3570,8 @@
   ([caller options hindent findent zloc]
    (fzprint-up-to-next-zloc-orig caller options hindent findent zloc :skip-first)))
 
+; Original approach
+
 (defn fzprint-up-to-second-zloc
   "Returns [[pre-first-style-vec pre-second-style-vec]
             [first-zloc second-zloc]
@@ -3609,6 +3611,7 @@
              (conj out (first nloc-seq)) 
 	     (inc next-count)))))
 
+; New approach
 
 (defn fzprint-up-to-next-zloc
   "Using the information returned from fzprint-up-to-first-zloc or
@@ -3658,6 +3661,8 @@
                 ; in here, and added newlines to comments.
                 #_#_coll-out (ensure-end-w-nl ind coll-out)]
             [coll-out next-zloc next-count zloc-seq]))))))
+
+; New approach
 
 (defn fzprint-up-to-first-zloc
   "Returns [pre-first-style-vec first-zloc first-count zloc-seq], where
@@ -3709,20 +3714,21 @@
   (apply + (map count (remove #{:noseq} svec-seq))))
 
 (defn get-zloc-seq-right
-  "Using return from up-to-second (or fzprint-beyond-second) return a
-  zloc-seq pointer to just beyond a specific zloc, n. Note that n is
-  zero based, so for zfirst, use 0, zsecond, use 1."
-  [[style-vec-seq arg-zloc-seq next-count-seq full-zloc-seq :as up-to-data] n]
-  (if (>= n (count next-count-seq))
+  "Using return from fzprint-up-to-first-zloc or fzprint-up-to-next-zloc,
+  [pre-next-style-vec next-zloc next-count zloc-seq], return a zloc-seq
+  pointer to just beyond the specific zloc which was found by the
+  fzprint-up-to-first or fzprint-up-to-next call.  You don't give this
+  a number, you give it the data structure from the thing that you found."
+  [[_ _ next-count zloc-seq :as input-data]]
+  (if (>= next-count (count zloc-seq))
     (throw (#?(:clj Exception.
                :cljs js/Error.)
-            (str "get-zloc-seq-right request for:" n
-                 "greater than length of arg-zloc-seq:" (count arg-zloc-seq))))
-    (let [zloc-seq (nthnext full-zloc-seq (inc (nth next-count-seq n)))]
+            (str "get-zloc-seq-right input data inconsistent:" input-data)))
+    (let [zloc-seq (nthnext zloc-seq (inc next-count))]
       (dbg-pr "get-zloc-seq-right:" (map zstring zloc-seq))
       zloc-seq)))
 
-(defn get-zloc-seq-right
+(defn get-zloc-seq-right-orig
   "Using return from up-to-second (or fzprint-beyond-second) return a
   zloc-seq pointer to just beyond a specific zloc, n. Note that n is
   zero based, so for zfirst, use 0, zsecond, use 1."
@@ -3730,10 +3736,10 @@
   (if (>= n (count next-count-seq))
     (throw (#?(:clj Exception.
                :cljs js/Error.)
-            (str "get-zloc-seq-right request for:" n
+            (str "get-zloc-seq-right-orig request for:" n
                  "greater than length of arg-zloc-seq:" (count arg-zloc-seq))))
     (let [zloc-seq (nthnext full-zloc-seq (inc (nth next-count-seq n)))]
-      (dbg-pr "get-zloc-seq-right:" (map zstring zloc-seq))
+      (dbg-pr "get-zloc-seq-right-orig:" (map zstring zloc-seq))
       zloc-seq)))
 	  
 ;;
@@ -4276,19 +4282,19 @@
         len (zcount zloc)
         l-str-len (count l-str)
         indent (:indent (options caller))
-        [[pre-arg-1-style-vec pre-arg-2-style-vec] [arg-1-zloc arg-2-zloc]
+        #_#_[[pre-arg-1-style-vec pre-arg-2-style-vec] [arg-1-zloc arg-2-zloc]
          [arg-1-count arg-2-count] zloc-seq :as up-to-second-data]
           (fzprint-up-to-second-zloc caller options (+ ind l-str-len) zloc)
         ;; TODO: Change (zfirst-no-comment zloc) to arg-1-zloc below
-	#_#_[pre-arg-1-style-vec arg-1-zloc arg-1-count zloc-seq 
-	 :as up-to-first-data]
+	[pre-arg-1-style-vec arg-1-zloc arg-1-count zloc-seq 
+	 :as first-data]
 	  (fzprint-up-to-first-zloc caller options (+ ind l-str-len) zloc)
-	#_#_[pre-arg-2-style-vec arg-2-zloc arg-2-count _ :as up-to-second-data]
+	[pre-arg-2-style-vec arg-2-zloc arg-2-count _ :as second-data]
 	  ; The ind is wrong, need arg-1-indent, but we don't have it yet.
 	  (fzprint-up-to-next-zloc caller 
 	                           options 
 				   (+ ind l-str-len)
-	                           up-to-first-data)
+	                           first-data)
 
         #_(dbg-pr options
                   "fzprint-list* pre-arg-1-style-vec:" pre-arg-1-style-vec
@@ -4498,7 +4504,7 @@
                 ; will sort it out
                 (fzprint-flow-seq options
                                   (+ indent ind)
-                                  (get-zloc-seq-right up-to-second-data 1)
+                                  (get-zloc-seq-right second-data)
                                   :force-nl
 				  :newline-first)
                 r-str-vec)
@@ -4546,7 +4552,7 @@
                 r-str-vec)
               r-str-vec)))
       (= fn-style :pair-fn) 
-	    (let [zloc-seq (get-zloc-seq-right up-to-second-data 0)
+	    (let [zloc-seq (get-zloc-seq-right first-data)
 		  zloc-count (count zloc-seq)]
 		    (concat-no-nil
 			l-str-vec
@@ -4794,7 +4800,7 @@
                                     (+ indent ind indent-adj)
 				    ; Can't do this, because hang-remaining
 				    ; doesn't take a seq
-	                            (get-zloc-seq-right up-to-second-data 0)
+	                            (get-zloc-seq-right first-data)
                                     ;(znthnext zloc 0)
                                     fn-style)]
                (dbg-pr options "fzprint-list*: r-str-vec:" r-str-vec "result:" result)
@@ -4808,7 +4814,7 @@
                              (fzprint-flow-seq (noarg1 options fn-style)
                                                local-indent
                                                ;(nthnext (zmap identity zloc) 1)
-	                            (get-zloc-seq-right up-to-second-data 0)
+	                            (get-zloc-seq-right first-data)
                                                :force-nl
 					       :newline-first))))
           r-str-vec))))
