@@ -1742,11 +1742,18 @@
                               (split-with #(or (pair-element-new? %)
                                                (middle-element? options %))
                                           (next remaining))]
-                        [(next rest-seq)
-                         (into []
-                               (concat [(first remaining)]
-                                       comment-seq
-                                       [(first rest-seq)])) true])
+                        (if (first rest-seq)
+                          ; We have more to than just a comment, so we can
+                          ; pair it up between two things.
+                          [(next rest-seq)
+                           (into []
+                                 (concat [(first remaining)]
+                                         comment-seq
+                                         [(first rest-seq)])) true]
+                          ; This is the end, don't pair a comment up
+                          ; with something on the left if there isn't
+                          ; something on the right of it.
+                          [(next remaining) [(first remaining)] true]))
                     (= (count remaining) 1) [(next remaining)
                                              [(first remaining)] nil]
                     :else [(next (next remaining))
@@ -5353,9 +5360,10 @@
   [caller l-str r-str
    {:keys [one-line? ztype map-depth in-code?],
     {:keys [comma? key-ignore key-ignore-silent nl-separator? force-nl? lift-ns?
-            lift-ns-in-code? respect-nl? indent-only? indent]}
+            lift-ns-in-code? respect-nl? indent-only? indent],
+      :as map-options}
       caller,
-    :as options} ind zloc]
+    :as options} ind zloc ns]
   (if indent-only?
     (let [options (assoc options :map-depth (inc map-depth))
           l-str-vec [[l-str (zcolor-map options l-str) :left]]
@@ -5465,9 +5473,10 @@
   [caller l-str r-str
    {:keys [one-line? ztype map-depth in-code?],
     {:keys [comma? key-ignore key-ignore-silent nl-separator? force-nl? lift-ns?
-            lift-ns-in-code? respect-nl? indent-only? indent]}
+            lift-ns-in-code? respect-nl? indent-only? indent],
+      :as map-options}
       caller,
-    :as options} ind zloc]
+    :as options} ind zloc ns]
   (if indent-only?
     (let [options (assoc options :map-depth (inc map-depth))
           l-str-vec [[l-str (zcolor-map options l-str) :left]]
@@ -5498,10 +5507,10 @@
 	  #_(dbg-pr "fzprint-map*-new pair-seq:" (map (comp zstring first) pair-seq))
 	  ; don't sort if we are doing respect-nl?
 	  no-sort? (or no-sort? respect-nl?)
-          [ns lift-pair-seq] (when (and lift-ns?
-                                        (if in-code? lift-ns-in-code? true))
-                               (zlift-ns pair-seq))
-          l-str (if ns (str "#:" ns l-str) l-str)
+	  [ns lift-pair-seq]
+	    (zlift-ns (assoc map-options :in-code? in-code?) pair-seq ns)
+	  _ (dbg-pr options "fzprint-map* zlift-ns ns:" ns)
+	  l-str (if ns (str "#" ns l-str) l-str)
           pair-seq (or lift-pair-seq pair-seq)
           pair-seq
             (if no-sort? pair-seq (order-out caller options first pair-seq))
@@ -5592,7 +5601,7 @@
               [(zstring (first zloc-seq)) (second zloc-seq)]))]
     (dbg-pr options "fzprint-map: ns:" ns)
     (if ns
-      (fzprint-map* :map
+      (fzprint-map*-new :map
                     "{"
                     #_(str "#" ns "{")
                     "}"
@@ -5600,7 +5609,7 @@
                     ind
                     lifted-map
                     ns)
-      (fzprint-map* :map "{" "}" (rightmost options) ind zloc nil))))
+      (fzprint-map*-new :map "{" "}" (rightmost options) ind zloc nil))))
 
 (defn object-str?
   "Return true if the string starts with #object["
