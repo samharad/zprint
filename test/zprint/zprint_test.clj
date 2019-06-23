@@ -3191,6 +3191,24 @@ ser/collect-vars-acc %1 %2) )))"
                 {:parse-string? true, :map {:respect-nl? true}, :width 80})
               {:parse-string? true, :map {:respect-nl? true}, :width 80}))
 
+;;
+;; If there are only two things and the first is a comment
+;;
+
+(expect "(;this is a test\n the-first-thing)"
+        (zprint-str "(;this is a test\n the-first-thing)"
+                    {:parse-string? true}))
+
+;;
+;; partition-all-sym was handling a comment with a symbol on its own
+;; incorrectly.
+
+(expect
+  "(reify\n  xyzzy1\n  ;comment\n  xyzzy2\n    (rrr [_] \"ghi\")\n    (sss [_] :abc)\n  zzz)"
+  (zprint-str
+    "(reify xyzzy1 \n ;comment\n xyzzy2 (rrr [_] \"ghi\") \n (sss [_] :abc) zzz)"
+    {:parse-string? true}))
+
 
 
 
