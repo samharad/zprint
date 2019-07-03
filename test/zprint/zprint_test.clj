@@ -3209,8 +3209,104 @@ ser/collect-vars-acc %1 %2) )))"
     "(reify xyzzy1 \n ;comment\n xyzzy2 (rrr [_] \"ghi\") \n (sss [_] :abc) zzz)"
     {:parse-string? true}))
 
+;;
+;; :respect-nl? true tests for :extend (which basically means reify)
+;;
 
+(expect
+  "(reify\n  xyzzy1\n  \n  ;comment\n  \n  xyzzy2\n    (rrr [_] \"ghi\")\n    \n    (sss [_] :abc)\n  zzz)"
+  (zprint-str
+    "(reify xyzzy1 \n\n ;comment\n\n xyzzy2 (rrr [_] \"ghi\") \n\n (sss [_] :abc) zzz)"
+    {:parse-string? true, :list {:respect-nl? true}}))
 
+(expect
+  "(reify\n  xyzzy1\n  \n  ;comment\n  \n  xyzzy2\n    (rrr [_] \"ghi\")\n    (sss [_] :abc)\n  zzz)"
+  (zprint-str
+    "(reify xyzzy1 \n\n ;comment\n\n xyzzy2 (rrr [_] \"ghi\") \n (sss [_] :abc) zzz)"
+    {:parse-string? true, :list {:respect-nl? true}}))
 
+(expect
+  "(reify\n  xyzzy1\n  \n  ;comment\n  \n  xyzzy2\n    (rrr [_] \"ghi\")\n    (sss [_] :abc)\n  zzz)"
+  (zprint-str
+    "(reify xyzzy1 \n\n ;comment\n\n xyzzy2 (rrr [_] \"ghi\") (sss [_] :abc) zzz)"
+    {:parse-string? true, :list {:respect-nl? true}}))
 
+(expect
+  "(reify\n  xyzzy1\n  \n  ;comment\n  xyzzy2\n    (rrr [_] \"ghi\")\n    (sss [_] :abc)\n  zzz)"
+  (zprint-str
+    "(reify xyzzy1 \n\n ;comment\n xyzzy2 (rrr [_] \"ghi\") (sss [_] :abc) zzz)"
+    {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(reify\n  xyzzy1\n  ;comment\n  xyzzy2\n    (rrr [_] \"ghi\")\n    (sss [_] :abc)\n  zzz)"
+  (zprint-str
+    "(reify xyzzy1 \n ;comment\n xyzzy2 (rrr [_] \"ghi\") (sss [_] :abc) zzz)"
+    {:parse-string? true, :list {:respect-nl? true}}))
+
+(expect
+  "(reify\n  xyzzy1 ;comment\n  xyzzy2\n    (rrr [_] \"ghi\")\n    (sss [_] :abc)\n  zzz)"
+  (zprint-str
+    "(reify xyzzy1 ;comment\n xyzzy2 (rrr [_] \"ghi\") (sss [_] :abc) zzz)"
+    {:parse-string? true, :list {:respect-nl? true}}))
+
+;;
+;; :arg1-extend tests
+;;
+
+(defprotocol ZprintProtocol  
+  ; an optional doc string
+  "This is a test protocol for zprint!"
+  ; method signatures
+  (stuffx [this x y] "stuff docstring")
+  (botherx [this] [this x] [this x y] "bother docstring")
+  (foox [this baz] "foo docstring"))
+
+(expect
+  "(extend ZprintType\n  ZprintProtocol\n    {:bar (fn [x y] (list x y)), :baz (fn ([x] (str x)) ([x y] (list x y)))})"
+  (zprint-str
+    "(extend ZprintType 
+      ZprintProtocol {:bar (fn [x y] (list x y)), 
+                      :baz (fn ([x] (str x)) ([x y] (list x y)))})"
+    {:parse-string? true}))
+
+(expect
+  "(extend-type ZprintType\n  ZprintProtocol\n    (more [a b] (and a b))\n    (and-more ([a] (nil? a)) ([a b] (or a b))))"
+  (zprint-str
+    "(extend-type ZprintType 
+      ZprintProtocol 
+        (more [a b] (and a b)) 
+        (and-more ([a] (nil? a)) ([a b] (or a b))))"
+    {:parse-string? true}))
+
+(expect
+  "(extend-protocol ZprintProtocol\n  ZprintType\n    (more-stuff [x] (str x))\n    (more-bother [y] (list y))\n    (more-foo [z] (nil? z)))"
+  (zprint-str
+    "(extend-protocol ZprintProtocol 
+      ZprintType 
+        (more-stuff [x] (str x)) 
+        (more-bother [y] (list y)) 
+        (more-foo [z] (nil? z)))"
+    {:parse-string? true}))
+
+;;
+;; :arg1-extend respect-nl? tests
+;;
+
+(expect
+  "(extend\n  ZprintType\n  ZprintProtocol\n    {:bar (fn [x y] (list x y)),\n     :baz (fn ([x] (str x)) ([x y] (list x y)))})"
+  (zprint-str
+    "(extend \nZprintType\n      ZprintProtocol \n      {:bar (fn [x y] (list x y)),\n                      :baz (fn ([x] (str x)) ([x y] (list x y)))})"
+    {:parse-string? true, :style :respect-nl}))
+
+(expect
+  "(extend-type ZprintType\n  ZprintProtocol\n    (more [a b]\n      (and a b))\n    (and-more ([a]\n               (nil? a))\n              ([a b]\n               (or a b))))"
+  (zprint-str
+    "(extend-type ZprintType\n      ZprintProtocol\n        (more [a b] \n\t(and a b))\n        (and-more ([a] \n\t(nil? a)) ([a b] \n\t(or a b))))"
+    {:parse-string? true, :style :respect-nl}))
+
+(expect
+  "(extend-protocol ZprintProtocol\n  ZprintType\n    \n    (more-stuff [x] (str x))\n    \n    (more-bother [y] (list y))\n    \n    (more-foo [z] (nil? z)))"
+  (zprint-str
+    "(extend-protocol ZprintProtocol\n      ZprintType\n\n        (more-stuff [x] (str x))\n\n        (more-bother [y] (list y))\n\n        (more-foo [z] (nil? z)))"
+    {:parse-string? true, :style :respect-nl}))
 

@@ -988,11 +988,10 @@
   "Print a single pair of things (though it might not be exactly a
   pair, given comments and :extend and the like), like bindings in
   a let, clauses in a cond, keys and values in a map.  Controlled
-  by various maps, the key of which is caller.  This will return a
-  style-vec (or nil), unless hangflow? is true, in which case it
-  will return [:hang <style-vec>] or [:flow <style-vec>] so that
-  the upstream folks know whether this was a hang or flow and can
-  do the right thing based on that."
+  by various maps, the key of which is caller.  Returns 
+  [:hang <style-vec>] or [:flow <style-vec>] so that the upstream folks
+  know whether this was a hang or flow and can do the right thing
+  based on that."
   [caller
    {:keys [one-line? dbg? dbg-indent in-hang? do-in-hang? map-depth],
     {:keys [hang? dbg-local? dbg-cnt? indent indent-arg flow? key-color
@@ -1121,7 +1120,7 @@
     ; If we don't *have* an arg-1, no point in continuing...
     ;  If arg-1 doesn't fit, maybe that's just how it is!
     ;  If we are in-hang, then we can bail, but otherwise, not.
-    (dbg-pr options "fzprint-map-two-up-new: arg-1:" arg-1)
+    (dbg-pr options "fzprint-two-up-new: arg-1:" arg-1)
     (when (and arg-1 (or arg-1-fit? (not in-hang?)))
       (cond
 	arg-1-newline? [:flow arg-1]
@@ -1908,20 +1907,20 @@
   Must be called with a sequence of z-things (these days called a zseq)"
   [options modifier-set coll]
   #_(prn "partition-all-sym-new-static:" modifier-set)
-  (def scoll coll)
+  #_(def scoll coll)
   (dbg options "partition-all-sym-new: coll:" (map zstring coll))
   (let [part-sym (partition-by
                    #(or (zsymbol? %) (znil? %) (zreader-cond-w-symbol? %))
                    coll)
         split-non-coll (mapcat cleave-end part-sym)]
-    (def ps part-sym)
-    (def snc split-non-coll)
+    #_(def ps part-sym)
+    #_(def snc split-non-coll)
     (loop [remaining split-non-coll
            out [] #_(transient [])]
       #_(prn "remaining:" (zprint.repl/pseqzseq remaining))
       #_(prn "out:" (zprint.repl/pseqzseq out))
       (if (empty? remaining)
-	(do (def pasn out)
+	(do #_(def pasn out)
 	out)
         #_(persistent! out)
         (let [[next-remaining new-out]
@@ -1934,7 +1933,11 @@
 		       ; collections from being associated with the previous
 		       ; symbol instead of standing on its own (as it should)
 		       (or 
-			 (not (= (ztag (first (second remaining))) :comment))
+			 (not 
+			   (or  
+			     (= (ztag (first (second remaining))) :comment)
+			     (= (ztag (first (second remaining))) :newline)
+			 ))
 			 (zcoll? (last (second remaining)))))
                     ; We have a non-collection in (first remaining) and
                     ; we might have more than one, either because we just
@@ -2151,7 +2154,7 @@
   (dbg options "fzprint-extend-new:" (zstring (first zloc-seq)))
   (dbg-form options
             "fzprint-extend-new: exit:"
-            (interpose-nl-hf
+            (interpose-nl-hf-new
               (:extend options)
               ind
               (fzprint-map-two-up-new
@@ -4884,6 +4887,35 @@
           r-str-vec)
       ; we know that (> len 2) if fn-style not= nil
       (= fn-style :arg1-extend)
+        (let [zloc-seq-right-second (get-zloc-seq-right second-data)]
+	
+        (cond
+          (zvector? arg-2-zloc)
+            (concat-no-nil
+              l-str-vec
+              (fzprint* loptions (inc ind) arg-1-zloc)
+              [[(str "\n" (blanks (+ indent ind))) :none :indent]]
+              (fzprint* loptions (inc ind) arg-2-zloc)
+              [[(str "\n" (blanks (+ indent ind))) :none :indent]]
+              ; This needs to be (znthnext zloc 1) and not 2 because
+              ; fzprint-extend does (zmap-right identity zloc), skipping
+              ; the first one!
+              (fzprint-extend-new options (+ indent ind) zloc-seq-right-second)
+              r-str-vec)
+          :else (concat-no-nil
+                  l-str-vec
+                  (fzprint* loptions (inc ind) arg-1-zloc)
+                  (fzprint-hang-one caller
+                                    (if (= len 2) options loptions)
+                                    arg-1-indent
+                                    (+ indent ind)
+                                    arg-2-zloc)
+                  [[(str "\n" (blanks (+ indent ind))) :none :indent]]
+                  (fzprint-extend-new options (+ indent ind) zloc-seq-right-second)
+                  r-str-vec)))
+
+
+      #_#_(= fn-style :arg1-extend)
         (cond
           (zvector? (zsecond zloc))
             (concat-no-nil
