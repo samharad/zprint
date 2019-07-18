@@ -3310,3 +3310,93 @@ ser/collect-vars-acc %1 %2) )))"
     "(extend-protocol ZprintProtocol\n      ZprintType\n\n        (more-stuff [x] (str x))\n\n        (more-bother [y] (list y))\n\n        (more-foo [z] (nil? z)))"
     {:parse-string? true, :style :respect-nl}))
 
+;;
+;; :extend tests for stuff (e.g. comments) in difficult places in lists
+;;
+
+(expect
+  "(;stuff\n reify\n  ;bother\n  xyzzy1\n  ;foo\n  xyzzy2\n    ;bar\n    (rrr [_] \"ghi\"))"
+  (zprint-str
+    "(;stuff \n reify \n;bother\n xyzzy1 \n;foo\n xyzzy2 \n;bar\n (rrr [_] \"ghi\"))"
+    {:parse-string? true}))
+
+(expect
+  "(;stuff\n reify\n  ;bother\n  xyzzy1\n  ;foo\n  xyzzy2\n    ;bar\n    (;baz\n     rrr [_]\n      \"ghi\"))"
+  (zprint-str
+    "(;stuff \n reify \n;bother\n xyzzy1 \n;foo\n xyzzy2 \n;bar\n (;baz\n rrr [_] \"ghi\"))"
+    {:parse-string? true}))
+
+;;
+;; :fn tests for comments in difficult places
+;;
+
+(expect
+  "(;does\n fn [a b c]\n  (;work\n   let ;at all\n    [a b\n     c d\n     e f]\n    (list a c e)))"
+  (zprint-str
+    "(;does\nfn [a b c] (;work\nlet ;at all\n [a b c d e f] (list a c e)))"
+    {:parse-string? true, :width 30}))
+
+;;
+;; :arg1-extend tests for comments in difficult places
+;;
+
+(expect
+  "(;is this a problem?\n extend ; and what about this?\n  ZprintType\n  ZprintProtocol\n    {:bar (;this\n           let ;is\n            [x y a b c d]\n            (let [a b\n                  c d\n                  e f\n                  g h]\n              x\n              y)),\n     :baz (fn ([x] (str x)) ([x y] (list x y)))})"
+  (zprint-str
+    "(;is this a problem?\n            extend ; and what about this?\n\t    ZprintType\n      ZprintProtocol {:bar (;this\n     let ;is\n      [x y a b c d] (let [a b c d e f g h] x y)),\n                      :baz (fn ([x] (str x)) ([x y] (list x y)))})"
+    {:parse-string? true}))
+
+;;
+;; :arg2 test
+;;
+
+(expect "(as-> (list :a) x\n  (repeat 5 x)\n  (do (println x) x)\n  (nth x 2))"
+        (zprint-str
+          "(as-> (list :a) x (repeat 5 x) (do (println x) x) (nth x 2))"
+          {:parse-string? true, :width 20}))
+
+;;
+;; :arg2 test that includes test for handling third argument correctly
+;; and for handling indent on comments when they are not inline
+;;
+
+(expect
+  "(;stuff\n as-> ;foo\n  (list :a) ;bar\n  x ;baz\n  (repeat 5 x)\n  (do (println x) x)\n  (nth x 2))"
+  (zprint-str
+    "(;stuff\nas-> ;foo\n (list :a) ;bar\n x ;baz\n (repeat 5 x) (do (println x) x) (nth x 2))"
+    {:parse-string? true, :width 20, :comment {:inline? true}}))
+
+(expect
+  "(;stuff\n as->\n  ;foo\n  (list :a)\n  ;bar\n  x\n  ;baz\n  (repeat 5 x)\n  (do (println x) x)\n  (nth x 2))"
+  (zprint-str
+    "(;stuff\nas-> ;foo\n (list :a) ;bar\n x ;baz\n (repeat 5 x) (do (println x) x) (nth x 2))"
+    {:parse-string? true, :width 20, :comment {:inline? false}}))
+
+;;
+;; Some more :arg2 testing, looking at where the second arg shows up based
+;; on the line count of the first two args.
+;;
+
+(expect
+  "(as->\n  (list\n    :a)\n  x\n  (repeat\n    5\n    x)\n  (do (println x) x)\n  (nth x 2))"
+  (zprint-str
+    "(as-> \n (list \n:a) x (repeat \n 5 x) (do (println x) x) (nth x 2))"
+    {:parse-string? true,
+     :width 20,
+     :dbg? false,
+     :comment {:inline? true},
+     :style :respect-nl}))
+
+(expect
+  "(as-> ;foo\n  (list :a)\n  x\n  (repeat 5 x)\n  (do (println x) x)\n  (nth x 2))"
+  (zprint-str
+    "(as-> ;foo\n (list :a)  x  (repeat 5 x) (do (println x) x) (nth x 2))"
+    {:parse-string? true,
+     :width 20,
+     :dbg? false,
+     :comment {:inline? true},
+     :style :respect-nl}))
+
+
+
+

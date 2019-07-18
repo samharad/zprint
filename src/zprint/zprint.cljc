@@ -4022,7 +4022,7 @@
             second-indent (length-before second-element)
             third-element (next-actual second-element)
             third-indent (length-before third-element)]
-        (prn "hang-zloc?: second-element:" (zstring second-element)
+        #_(prn "hang-zloc?: second-element:" (zstring second-element)
              "second-indent:" second-indent
              "third-element:" (zstring third-element)
              "third-tag:" (zprint.zutil/tag third-element)
@@ -4426,22 +4426,19 @@
           (fzprint-up-to-first-zloc caller options (+ ind l-str-len) zloc)
         [pre-arg-2-style-vec arg-2-zloc arg-2-count _ :as second-data]
           ; The ind is wrong, need arg-1-indent, but we don't have it yet.
-          (fzprint-up-to-next-zloc caller options (+ ind l-str-len) first-data)
-        #_(dbg-pr options
+          (fzprint-up-to-next-zloc caller 
+	                           options 
+				   ;(+ ind l-str-len) 
+				   (+ ind indent)
+				   first-data)
+        #_ ;(dbg-pr options
+	  (prn
                   "fzprint-list* pre-arg-1-style-vec:" pre-arg-1-style-vec
-                  "pre-first-style-vec:" pre-first-style-vec
-                  "= pre-first?" (= pre-arg-1-style-vec pre-first-style-vec)
                   "pre-arg-2-style-vec:" pre-arg-2-style-vec
-                  "pre-second-style-vec:" pre-second-style-vec
-                  "= pre-second?" (= pre-arg-2-style-vec pre-second-style-vec)
                   "arg-1-zloc:" (zstring arg-1-zloc)
-                  "first-zloc:" (zstring first-zloc)
                   "arg-2-zloc:" (zstring arg-2-zloc)
-                  "second-zloc:" (zstring second-zloc)
                   "arg-1-count:" arg-1-count
-                  "first-count:" first-count
-                  "arg-2-count:" arg-2-count
-                  "second-count:" second-count)
+                  "arg-2-count:" arg-2-count)
         ; TODO: TAKE THIS OUT!
         #_(when-not (and (= pre-arg-1-style-vec pre-first-style-vec)
                          (= pre-arg-2-style-vec pre-second-style-vec)
@@ -4725,7 +4722,162 @@
                        (fzprint-extend options (+ indent ind) (znthnext zloc 0))
                        r-str-vec)
       ; needs (> len 2) but we already checked for that above in fn-style
-      (or (and (= fn-style :fn) (not (zlist? (zsecond zloc))))
+      (or (and (= fn-style :fn) (not (zlist? arg-2-zloc)))
+          (= fn-style :arg2)
+          (= fn-style :arg2-fn)
+          (= fn-style :arg2-pair)
+          (= fn-style :arg2-extend))
+        (let [[pre-arg-3-style-vec arg-3-zloc arg-3-count _ :as third-data]
+	      ; The ind is wrong, need arg-1-indent, but we don't have it yet.
+	      (fzprint-up-to-next-zloc caller 
+	                               options 
+				       ; This is probably wrong
+				       ; (+ ind l-str-len)
+				       (+ ind indent)
+				       second-data)
+
+	      #_ (prn "pre-arg-1-style-vec:" pre-arg-1-style-vec)
+	      #_ (prn "pre-arg-2-style-vec:" pre-arg-2-style-vec)
+	      #_ (prn "pre-arg-3-style-vec:" pre-arg-3-style-vec)
+              zloc-seq-right-third (get-zloc-seq-right third-data)
+	      second-element (fzprint-hang-one caller
+					       (if (not arg-3-zloc)
+					         options
+						 loptions)
+                                               #_(if (= len 2) options loptions)
+                                               ; This better not be nil
+                                               arg-1-indent
+                                               (+ indent ind)
+					       arg-2-zloc)
+              [line-count max-width]
+                ; arg-1-indent better not be nil here either
+                (style-lines loptions arg-1-indent second-element)
+	   ; third (zthird zloc)
+              first-three
+                #_(when second-element
+                  (concat-no-nil
+		    pre-arg-1-style-vec
+                    (fzprint* loptions
+                              ;(inc ind)
+                              (+ indent ind)
+			      arg-1-zloc)
+		    pre-arg-2-style-vec
+                    second-element
+		    pre-arg-3-style-vec
+                    (if (or (= fn-style :arg2)
+                            (= fn-style :arg2-pair)
+                            (= fn-style :arg2-fn)
+                            (and (zvector? arg-3-zloc) (= line-count 1)))
+                      (fzprint-hang-one caller
+					(if (not zloc-seq-right-third)
+					  options
+					  loptions)
+                                        #_(if (= len 3) options loptions)
+                                        ;(inc max-width)
+                                        ; later version:; max-width
+					(if (= pre-arg-3-style-vec :noseq)
+					   max-width
+					   (+ indent ind))
+                                        (+ indent ind)
+                                        arg-3-zloc)
+                      (concat-no-nil [[(str "\n" (blanks (+ indent ind))) :none
+                                       :indent]]
+                                     (fzprint* 
+				       (if (not zloc-seq-right-third)
+				         options 
+					 loptions)
+				       #_(if (= len 3) options loptions)
+                                               (+ indent ind)
+                                               arg-3-zloc)))))
+                (when second-element
+		  (let [first-two 
+                  (concat-no-nil
+		    pre-arg-1-style-vec
+                    (fzprint* loptions
+                              ;(inc ind)
+                              (+ indent ind)
+			      arg-1-zloc)
+		    pre-arg-2-style-vec
+                    second-element
+		    pre-arg-3-style-vec)
+		    local-options
+					(if (not zloc-seq-right-third)
+					  options
+					  loptions)
+		    first-two-one-line?
+    (fzfit-one-line local-options 
+      (style-lines local-options (+ ind indent) first-two))
+		    ]
+		    (concat-no-nil first-two
+                    (if (or (= fn-style :arg2)
+                            (= fn-style :arg2-pair)
+                            (= fn-style :arg2-fn)
+                            (and (zvector? arg-3-zloc) (= line-count 1)))
+                      (fzprint-hang-one caller
+					(if (not zloc-seq-right-third)
+					  options
+					  loptions)
+                                        #_(if (= len 3) options loptions)
+                                        ;(inc max-width)
+                                        ; later version:; max-width
+					(if 
+					   (and
+					   (= pre-arg-3-style-vec :noseq)
+					   first-two-one-line?)
+					   max-width
+					   (+ indent ind))
+                                        (+ indent ind)
+                                        arg-3-zloc)
+                      (concat-no-nil [[(str "\n" (blanks (+ indent ind))) :none
+                                       :indent]]
+                                     (fzprint* 
+				       (if (not zloc-seq-right-third)
+				         options 
+					 loptions)
+				       #_(if (= len 3) options loptions)
+                                               (+ indent ind)
+                                               arg-3-zloc))))))
+					       
+					       
+					       ]
+	  #_(prn "first-three: second element:"
+	      second-element
+	      "first-three:" first-three)
+	    
+          (when first-three
+            (if #_(= len 3)
+	      ; Nothing after the third thing, means just three things
+	      (not zloc-seq-right-third)
+              (concat-no-nil l-str-vec first-three r-str-vec)
+              (concat-no-nil
+                l-str-vec
+                first-three
+                (cond
+                  (= fn-style :arg2-pair)
+                    (concat-no-nil
+                      [[(str "\n" (blanks (+ indent ind))) :none :indent]]
+                      (fzprint-pairs-new options (+ indent ind) 
+			  zloc-seq-right-third
+		          #_(znthnext zloc 2)))
+                  (= fn-style :arg2-extend)
+                    (concat-no-nil
+                      [[(str "\n" (blanks (+ indent ind))) :none :indent]]
+                      (fzprint-extend-new options (+ indent ind) 
+			  zloc-seq-right-third
+		          #_(znthnext zloc 2)))
+                  :else (fzprint-hang-remaining-new caller
+                                                ;options
+                                                (if (= fn-style :arg2-fn)
+                                                  (assoc options :fn-style :fn)
+                                                  options)
+                                                (+ indent ind)
+                                                ; force flow
+                                                (+ indent ind)
+						zloc-seq-right-third
+                                                #_(znthnext zloc 2)
+                                                fn-style))
+                r-str-vec))))
+      #_#_(or (and (= fn-style :fn) (not (zlist? (zsecond zloc))))
           (= fn-style :arg2)
           (= fn-style :arg2-fn)
           (= fn-style :arg2-pair)
@@ -4904,7 +5056,9 @@
               r-str-vec)
           :else (concat-no-nil
                   l-str-vec
+		  pre-arg-1-style-vec
                   (fzprint* loptions (inc ind) arg-1-zloc)
+                  pre-arg-2-style-vec
                   (fzprint-hang-one caller
                                     (if (= len 2) options loptions)
                                     arg-1-indent
@@ -4913,7 +5067,6 @@
                   [[(str "\n" (blanks (+ indent ind))) :none :indent]]
                   (fzprint-extend-new options (+ indent ind) zloc-seq-right-second)
                   r-str-vec)))
-
 
       #_#_(= fn-style :arg1-extend)
         (cond
