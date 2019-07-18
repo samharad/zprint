@@ -2772,7 +2772,7 @@
   "(deftype Typetest1 [cnt _meta]\n  clojure.lang.IHashEq\n    (hasheq [this] ...)\n  clojure.lang.Counted\n    (count [_] ...)\n  clojure.lang.IMeta\n    (meta [_] ...))"
   (zprint-fn-str zprint.zprint-test/->Typetest1 {:max-length [100 2 10 0]}))
 
-(expect "(deftype Typetest1\n  ...)"
+(expect "(deftype Typetest1 ...)"
         (zprint-fn-str zprint.zprint-test/->Typetest1 {:max-length 2}))
 
 ;;
@@ -2890,7 +2890,7 @@
 (expect "{a 1}" (zprint-str "{a 1}" {:parse-string? true}))
 
 (expect
-  "(defrecord ~tagname\n  ~fields\n  (~-collect-vars\n    [acc]\n    (reduce #(list datascript.par ser/collect-vars-acc %1 %2))))"
+  "(defrecord ~tagname ~fields\n  (~-collect-vars\n    [acc]\n    (reduce #(list datascript.par ser/collect-vars-acc %1 %2))))"
   (zprint-str
     "(defrecord ~tagname ~fields (~-collect-vars [acc] (reduce #(list datascript.par
 ser/collect-vars-acc %1 %2) )))"
@@ -3397,6 +3397,65 @@ ser/collect-vars-acc %1 %2) )))"
      :comment {:inline? true},
      :style :respect-nl}))
 
+;;
+;; :arg2-fn test -- proxy is the only example
+;;
 
+(expect
+  "(proxy [Stuff] []\n  (configure [a b])\n  (myfn [c d]\n    (let [e c f d] (list (+ e f) c d))))"
+  (zprint-str
+    "(proxy [Stuff] []\n  (configure [a b])\n  (myfn [c d]\n    (let [e c\n          f d]\n      (list (+ e f) c d))))"
+    {:parse-string? true, :width 40}))
+
+;;
+;; :arg2-fn with respect-nl
+;;
+
+(expect
+  "(proxy [Stuff] []\n  (configure [a b])\n  (myfn [c d]\n    (let [e c\n          f d]\n      (list (+ e f) c d))))"
+  (zprint-str
+    "(proxy [Stuff] []\n  (configure [a b])\n  (myfn [c d]\n    (let [e c f d]\n      (list (+ e f) c d))))"
+    {:parse-string? true, :style :respect-nl, :width 40}))
+
+;;
+;; :arg2-extend 
+;;
+
+(expect
+  "(deftype Typetest1 [cnt _meta]\n  clojure.lang.IHashEq\n    (hasheq [this] (list this) (list this this) (list this this this this))\n  clojure.lang.Counted\n    (count [_] cnt)\n  clojure.lang.IMeta\n    (meta [_] _meta))"
+  (zprint-str
+    "(deftype Typetest1 [cnt _meta]\n\n  clojure.lang.IHashEq\n    (hasheq [this] \n      (list this) \n      (list this this) \n      (list this this this this))\n\n  clojure.lang.Counted\n    (count [_] cnt)\n\n  clojure.lang.IMeta\n    (meta [_] _meta))"
+    {:parse-string? true}))
+
+;;
+;; :arg2-extend with :respect-nl
+;;
+
+(expect
+  "(deftype Typetest1 [cnt _meta]\n  \n  clojure.lang.IHashEq\n    (hasheq [this]\n      (list this)\n      (list this this)\n      (list this this this this))\n  \n  clojure.lang.Counted\n    (count [_] cnt)\n  \n  clojure.lang.IMeta\n    (meta [_] _meta))"
+  (zprint-str
+    "(deftype Typetest1 [cnt _meta]\n\n  clojure.lang.IHashEq\n    (hasheq [this] \n      (list this) \n      (list this this) \n      (list this this this this))\n\n  clojure.lang.Counted\n    (count [_] cnt)\n\n  clojure.lang.IMeta\n    (meta [_] _meta))"
+    {:parse-string? true, :style :respect-nl}))
+
+
+;;
+;; :arg2-pair
+;;
+
+(expect
+  "(defn test-condp\n  [x y]\n  (;This is a test\n   condp = 1\n    1 :pass\n    2 :fail))"
+  (zprint-str
+    "(defn test-condp\n  [x y]\n  (;This is a test\n  condp \n  = 1\n  1 \n  :pass\n  2 :fail))"
+    {:parse-string? true}))
+
+;;
+;; :arg2-pair with respect-nl
+;;
+
+(expect
+  "(defn test-condp\n  [x y]\n  (;This is a test\n   condp\n    =\n    1\n    1\n      :pass\n    2 :fail))"
+  (zprint-str
+    "(defn test-condp\n  [x y]\n  (;This is a test\n  condp \n  = 1\n  1 \n  :pass\n  2 :fail))"
+    {:parse-string? true, :style :respect-nl}))
 
 

@@ -2324,7 +2324,7 @@
   findent is flow-indent, and each contains the initial separator.  
   Might be nice if the fn-style actually got sent to this fn."
   [caller {:keys [one-line?], :as options} hindent findent zloc]
-  (dbg options "fzprint-hang-one: hindent:" hindent "findent:" findent)
+  (dbg-pr options "fzprint-hang-one:" (zstring zloc) " hindent:" hindent "findent:" findent)
   (when (:dbg-hang options)
     (println (dots (:pdepth options))
              "h1 caller:"
@@ -4790,28 +4790,33 @@
                                                (+ indent ind)
                                                arg-3-zloc)))))
                 (when second-element
-		  (let [first-two 
-                  (concat-no-nil
-		    pre-arg-1-style-vec
-                    (fzprint* loptions
-                              ;(inc ind)
-                              (+ indent ind)
-			      arg-1-zloc)
-		    pre-arg-2-style-vec
-                    second-element
-		    pre-arg-3-style-vec)
-		    local-options
-					(if (not zloc-seq-right-third)
-					  options
-					  loptions)
+		  (let [first-two-wo-pre-arg-1 
+			    (concat-no-nil
+			      #_pre-arg-1-style-vec
+			      (fzprint* loptions
+					;(inc ind)
+					(+ indent ind)
+					arg-1-zloc)
+			      pre-arg-2-style-vec
+			      second-element
+			      pre-arg-3-style-vec)
+			  local-options
+			      (if (not zloc-seq-right-third)
+				options
+				loptions)
 		    first-two-one-line?
-    (fzfit-one-line local-options 
-      (style-lines local-options (+ ind indent) first-two))
+			(fzfit-one-line local-options 
+			  (style-lines local-options (+ ind indent) first-two-wo-pre-arg-1))
+		    first-two (concat-no-nil pre-arg-1-style-vec 
+		                             first-two-wo-pre-arg-1)
 		    ]
+		    (when-not first-two-one-line?
+		      (dbg-pr options "fzprint-list*: :arg2-* first two didn't fit:" first-two))
 		    (concat-no-nil first-two
                     (if (or (= fn-style :arg2)
                             (= fn-style :arg2-pair)
                             (= fn-style :arg2-fn)
+			    (= fn-style :arg2-extend)
                             (and (zvector? arg-3-zloc) (= line-count 1)))
                       (fzprint-hang-one caller
 					(if (not zloc-seq-right-third)
