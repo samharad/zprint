@@ -3458,4 +3458,26 @@ ser/collect-vars-acc %1 %2) )))"
     "(defn test-condp\n  [x y]\n  (;This is a test\n  condp \n  = 1\n  1 \n  :pass\n  2 :fail))"
     {:parse-string? true, :style :respect-nl}))
 
+;;
+;; :arg1-extend with second argument a vector.  No know uses as of 7/20/19.
+;;
+
+(expect
+  "(;comment1\n this ;comment2\n  [a b c]\n  ;comment3\n  Protocol\n    (should cause it to not fit on one line)\n    (and more test)\n    (and more test)\n    (and more test))"
+  (zprint-str
+    "(;comment1 \nthis ;comment2\n\n [a \nb c]\n ;comment3\n Protocol\n\n (should cause it to not fit on one line) (and more test) (and more test) (and more test))"
+    {:parse-string? true, :fn-map {"this" :arg1-extend}}))
+
+;;
+;; :arg1-extend with second argument a vector.  No know uses as of 7/20/19.
+;; This time with :respect-nl
+;;
+
+(expect
+  "(;comment1\n this ;comment2\n  \n  [a\n   b c]\n  ;comment3\n  Protocol\n    \n    (should cause it to not fit on one line)\n    (and more test)\n    (and more test)\n    (and more test))"
+  (zprint-str
+    "(;comment1 \nthis ;comment2\n\n [a \nb c]\n ;comment3\n Protocol\n\n (should cause it to not fit on one line) (and more test) (and more test) (and more test))"
+    {:parse-string? true, :fn-map {"this" :arg1-extend}, :style :respect-nl}))
+
+
 
