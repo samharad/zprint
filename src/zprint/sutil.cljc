@@ -299,6 +299,7 @@
     zprint.zfns/znextnws-w-nl next
     zprint.zfns/znthnext snthnext
     zprint.zfns/zcount scount
+    zprint.zfns/zcount-zloc-seq-nc-nws scount
     zprint.zfns/zmap smap
     zprint.zfns/zmap-w-nl smap
     ; zprint.zfns/zfn? sfn?

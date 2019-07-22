@@ -419,9 +419,18 @@
         (recur xloc (if (whitespace? xloc) index (inc index)))))))
 
 (defn zcount
-  "How many non-whitespace children does zloc have?"
+  "How many non-whitespace children does zloc have?  Note that this will
+  include comments."
   [zloc]
   (count (zseqnws zloc)))
+
+(defn zcount-zloc-seq-nc-nws
+  "How many non-whitespace non-comment children are in zloc-seq? Note
+  that this is fundamentally different from zcount, in that it doesn't
+  take a zloc, but rather a zloc-seq (i.e., a seq of elements, each of
+  which is a zloc)."
+  [zloc-seq]
+  (reduce #(if (whitespace-or-comment? %2) %1 (inc %1)) 0 zloc-seq))
 
 (defn find-root-and-path
   "Create a vector with the root as well as another vector
@@ -739,6 +748,7 @@
     zprint.zfns/znextnws-w-nl znextnws-w-nl
     zprint.zfns/znthnext znthnext
     zprint.zfns/zcount zcount
+    zprint.zfns/zcount-zloc-seq-nc-nws zcount-zloc-seq-nc-nws
     zprint.zfns/zmap zmap
     zprint.zfns/zmap-w-nl zmap-w-nl
     zprint.zfns/zanonfn? zanonfn?

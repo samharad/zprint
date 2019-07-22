@@ -3479,5 +3479,111 @@ ser/collect-vars-acc %1 %2) )))"
     "(;comment1 \nthis ;comment2\n\n [a \nb c]\n ;comment3\n Protocol\n\n (should cause it to not fit on one line) (and more test) (and more test) (and more test))"
     {:parse-string? true, :fn-map {"this" :arg1-extend}, :style :respect-nl}))
 
+;;
+;; :arg1 with comments
+;;
+
+(expect
+  "(;does :arg1 work now?\n defn test-condp\n  [x y]\n  (;This is a test\n   condp = 1\n    1 :pass\n    2 :fail))"
+  (zprint-str
+    "(;does :arg1 work now?\ndefn test-condp\n  [x y]\n  (;This is a test\n  condp \n  = 1\n  1 \n  :pass\n  2 :fail))"
+    {:parse-string? true}))
+
+;;
+;; :arg1 with more comments
+;;
+
+(expect
+  "(;does :arg1 work now?\n defn ;how does this work?\n  test-condp\n  [x y]\n  (;This is a test\n   condp = 1\n    1 :pass\n    2 :fail))"
+  (zprint-str
+    "(;does :arg1 work now?\ndefn ;how does this work?\ntest-condp\n  [x y]\n  (;This is a test\n  condp \n  = 1\n  1 \n  :pass\n  2 :fail))"
+    {:parse-string? true}))
+
+;;
+;; :arg1 with more comments and :respect-nl
+;;
+
+(expect
+  "(;does :arg1 work now?\n defn ;how does this work?\n  test-condp\n  [x y]\n  (;This is a test\n   condp\n    =\n    1\n    1\n      :pass\n    2 :fail))"
+  (zprint-str
+    "(;does :arg1 work now?\ndefn ;how does this work?\ntest-condp\n  [x y]\n  (;This is a test\n  condp \n  = 1\n  1 \n  :pass\n  2 :fail))"
+    {:parse-string? true, :style :respect-nl}))
+
+;;
+;; :arg1-force-nl
+;;
+
+(expect "(defprotocol P\n  (foo [this])\n  (bar-me [this] [this y]))"
+        (zprint-str "(defprotocol P (foo [this]) (bar-me [this] [this y]))"
+                    {:parse-string? true}))
+
+
+;;
+;; :arg1-force-nl with comments
+;;
+
+(expect
+  "(;stuff\n defprotocol\n  ;bother\n  P\n  (foo [this])\n  (bar-me [this] [this y]))"
+  (zprint-str
+    "(;stuff\ndefprotocol\n ;bother\nP (foo [this]) \n\n(bar-me [this] [this y]))"
+    {:parse-string? true}))
+
+;;
+;; :arg1-force-nl with comments and respect-nl
+;;
+
+(expect
+  "(;stuff\n defprotocol\n  ;bother\n  P\n  (foo [this])\n  \n  (bar-me [this] [this y]))"
+  (zprint-str
+    "(;stuff\ndefprotocol\n ;bother\nP (foo [this]) \n\n(bar-me [this] [this y]))"
+    {:parse-string? true, :style :respect-nl}))
+
+;;
+;; :arg1-pair
+;;
+
+(expect
+  "(assoc {}\n  :this :is\n  :a :test\n  :but-it-has-to-be :pretty-long-or-it-will\n  :all-fit-on :one-line)"
+  (zprint-str
+    "(assoc {} :this :is :a :test :but-it-has-to-be :pretty-long-or-it-will :all-fit-on :one-line)"
+    {:parse-string? true}))
+
+;;
+;; :arg1-pair with comments
+;;
+
+(expect
+  "(;comment1\n assoc {} ;comment3\n  :this :is\n  :a :test\n  :but-it-has-to-be :pretty-long-or-it-will\n  :all-fit-on :one-line)"
+  (zprint-str
+    "(;comment1\nassoc {} ;comment3\n:this :is \n\n:a :test :but-it-has-to-be :pretty-long-or-it-will :all-fit-on :one-line)"
+    {:parse-string? true}))
+
+;;
+;; :arg1-pair with more comments
+;;
+
+(expect
+  "(;comment1\n assoc ;comment2\n  {} ;comment3\n  :this :is\n  :a :test\n  :but-it-has-to-be :pretty-long-or-it-will\n  :all-fit-on :one-line)"
+  (zprint-str
+    "(;comment1\nassoc ;comment2\n\n{} ;comment3\n:this :is \n\n:a :test :but-it-has-to-be :pretty-long-or-it-will :all-fit-on :one-line)"
+    {:parse-string? true}))
+
+;;
+;; :arg1-pair with more comments and respect-nl
+;;
+
+(expect
+  "(;comment1\n assoc ;comment2\n  \n  {} ;comment3\n  :this :is\n  \n  :a :test\n  :but-it-has-to-be :pretty-long-or-it-will\n  :all-fit-on :one-line)"
+  (zprint-str
+    "(;comment1\nassoc ;comment2\n\n{} ;comment3\n:this :is \n\n:a :test :but-it-has-to-be :pretty-long-or-it-will :all-fit-on :one-line)"
+    {:parse-string? true, :style :respect-nl}))
+
+;;
+;; Make sure that len = 1 works with lots of comments, after changing len
+;; in fzprint-list* to be the length of the "good stuff".
+;;
+
+(expect "(;precomment\n one;postcomment\n  )"
+        (zprint-str "(;precomment\n one;postcomment\n)" {:parse-string? true}))
 
 

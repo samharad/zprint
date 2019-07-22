@@ -27,6 +27,7 @@
 (def znextnws-w-nl nil)
 (def znthnext nil)
 (def zcount nil)
+(def zcount-zloc-seq-nc-nws nil)
 (def zmap nil)
 (def zmap-w-nl nil)
 (def zanonfn? nil)
