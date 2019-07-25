@@ -4315,6 +4315,16 @@
       (dbg-pr options "fzprint-indent: output:" output)
       output)))
 
+(defn zfind-seq
+  "Find the location, counting from zero, and counting every element 
+  in the seq, of the first zthing?.  Return its index if it is found, 
+  nil if not."
+  [zthing? zloc-seq]
+  (loop [nloc zloc-seq
+         i 0]
+    (when (not (nil? nloc))
+      (if (zthing? (first nloc)) i (recur (next nloc) (inc i))))))
+
 ;;
 ;; # Utilities to modify list printing in various ways
 ;;
@@ -4745,7 +4755,6 @@
               second-element (fzprint-hang-one
                                caller
                                (if (not arg-3-zloc) options loptions)
-                               #_(if (= len 2) options loptions)
                                ; This better not be nil
                                arg-1-indent
                                (+ indent ind)
@@ -4799,7 +4808,6 @@
                           [[(str "\n" (blanks (+ indent ind))) :none :indent]]
                           (fzprint*
                             (if (not zloc-seq-right-third) options loptions)
-                            #_(if (= len 3) options loptions)
                             (+ indent ind)
                             arg-3-zloc))))))]
           (when first-three
@@ -4900,6 +4908,99 @@
                                                 fn-style))
                 r-str-vec))))
       (and (= fn-style :arg1-mixin) (> len 3))
+        (let [[pre-arg-3-style-vec arg-3-zloc arg-3-count _ :as third-data]
+                (fzprint-up-to-next-zloc caller
+                                         options
+                                         (+ ind indent)
+                                         second-data)
+              [pre-arg-4-style-vec arg-4-zloc arg-4-count _ :as fourth-data]
+                (fzprint-up-to-next-zloc caller
+                                         options
+                                         (+ ind indent)
+                                         third-data)
+              arg-vec-index (or (zfind-seq #(or (zvector? %)
+                                                (when (zlist? %)
+                                                  (zvector? (zfirst %))))
+                                           zloc-seq)
+                                0)
+              doc-string? (string? (zsexpr arg-3-zloc))
+              mixin-start (if doc-string? arg-4-count arg-3-count)
+              mixin-length (- arg-vec-index mixin-start 1)
+              mixins? (pos? mixin-length)
+              doc-string (when doc-string?
+                           (fzprint-hang-one caller
+                                             loptions
+                                             (+ indent ind)
+                                             ; force flow
+                                             (+ indent ind)
+                                             arg-3-zloc))
+              #_(prn ":arg1-mixin: doc-string?" doc-string?
+                     "mixin-start:" mixin-start
+                     "mixin-length:" mixin-length
+                     "mixins?" mixins?
+                     "arg-vec-index:" arg-vec-index
+                     "doc-string" doc-string
+                     "arg-1-count:" arg-1-count
+                     "arg-2-count:" arg-2-count
+                     "arg-3-count:" arg-3-count
+                     "arg-4-count:" arg-4-count)
+              ; Have to deal with no arg-vec-index!!
+              mixins
+                (when mixins?
+                  (let [mixin-sentinal (fzprint-hang-one
+                                         caller
+                                         loptions
+                                         (+ indent ind)
+                                         ; force flow
+                                         (+ indent ind)
+                                         (if doc-string? arg-4-zloc arg-3-zloc))
+                        [line-count max-width]
+                          (style-lines loptions (+ indent ind) mixin-sentinal)]
+                    (concat-no-nil
+                      (if doc-string? pre-arg-4-style-vec pre-arg-3-style-vec)
+                      mixin-sentinal
+                      (fzprint-hang-remaining-new
+                        caller
+                        loptions
+                        ; Apparently hang-remaining gives you a
+                        ; space after the current thing, so we
+                        ; need to account for it now, since
+                        ; max-width is the end of the current
+                        ; thing
+                        (inc max-width)
+                        (dec (+ indent indent ind))
+                        (get-zloc-seq-right
+                          (if doc-string fourth-data third-data))
+                        fn-style
+                        mixin-length))))]
+          (concat-no-nil
+            l-str-vec
+            pre-arg-1-style-vec
+            (fzprint* loptions (inc ind) arg-1-zloc)
+            pre-arg-2-style-vec
+            (fzprint-hang-one caller
+                              (if (= len 2) options loptions)
+                              arg-1-indent
+                              (+ indent ind)
+                              arg-2-zloc)
+            (cond (and doc-string? mixins?)
+                    (concat-no-nil pre-arg-3-style-vec doc-string mixins)
+                  doc-string? (concat-no-nil pre-arg-3-style-vec doc-string)
+                  mixins? mixins
+                  :else :noseq)
+            (fzprint-hang-remaining-new
+              caller
+              (noarg1 options fn-style)
+              (+ indent ind)
+              ; force flow
+              (+ indent ind)
+              (nthnext zloc-seq
+                       (if mixins?
+                         arg-vec-index
+                         (if doc-string? arg-4-count arg-3-count)))
+              fn-style)
+            r-str-vec))
+      #_#_(and (= fn-style :arg1-mixin) (> len 3))
         (let [arg-vec-index (or (zfind #(or (zvector? %)
                                             (when (zlist? %)
                                               (zvector? (zfirst %))))
