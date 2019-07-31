@@ -3128,6 +3128,10 @@ ser/collect-vars-acc %1 %2) )))"
     "(;stuff\n cond\n  \n  (= a 1) ;bother\n    (good stuff)\n  (not= b 2) (bad stuff)\n  :else\n    \n    (remaining stuff))"
     {:parse-string? true, :list {:respect-nl? true}}))
 
+;;
+;; :respect-nl for maps
+;;
+
 (expect "{:a :b, :c :d, :e :f}"
         (zprint-str "{:a :b :c :d :e :f}"
                     {:parse-string? true, :map {:respect-nl? true}}))
@@ -3603,4 +3607,23 @@ ser/collect-vars-acc %1 %2) )))"
     "(;comment 1\n  rum/defcs ;comment 2\n  component\n\n  ;comment 3\n  \"This is a component with a doc-string!  How unusual...\"\n  ;comment 4\n  < ;comment 5\n\n  rum/static\n                       rum/reactive\n\t\t       ;comment 6\n                       (rum/local 0 :count)\n\n                       (rum/local \"\" :text)\n  ;comment 7\n  [state label]\n  ;comment 8\n  (let [count-atom (:count state)\n        text-atom  (:text state)]\n    [:div]))"
     {:parse-string? true, :style :respect-nl}))
 
+;;
+;; :respect-nl? tests for sets
+;;
+;; First, without :respect-nl?
 
+(expect
+  "#{:arg1 :arg1-> :arg1-body :arg1-extend :arg1-force-nl :arg1-pair\n  :arg1-pair-body :arg2 :arg2-extend :arg2-fn :arg2-pair :binding :extend :flow\n  :flow-body :fn :force-nl :force-nl-body :gt2-force-nl :gt3-force-nl :hang\n  :noarg1 :noarg1-body :none :none-body :pair :pair-fn}"
+  (zprint-str
+    "#{:binding :arg1 \n  :arg1-body :arg1-pair-body \n  :arg1-pair :pair \n  :hang :extend\n    :arg1-extend :fn \n    :arg1-> :noarg1-body \n    :noarg1 :arg2 \n    :arg2-extend :arg2-pair\n    :arg2-fn :none \n    :none-body :arg1-force-nl \n    :gt2-force-nl :gt3-force-nl \n    :flow :flow-body \n    :force-nl-body \n    :force-nl :pair-fn}"
+    {:parse-string? true}))
+
+;;
+;; Then with :respect-nl? and a set
+;;
+
+(expect
+  "#{:binding :arg1\n  :arg1-body :arg1-pair-body\n  :arg1-pair :pair\n  :hang :extend\n  :arg1-extend :fn\n  :arg1-> :noarg1-body\n  :noarg1 :arg2\n  :arg2-extend :arg2-pair\n  :arg2-fn :none\n  :none-body :arg1-force-nl\n  :gt2-force-nl :gt3-force-nl\n  :flow :flow-body\n  :force-nl-body\n  :force-nl :pair-fn}"
+  (zprint-str
+    "#{:binding :arg1 \n  :arg1-body :arg1-pair-body \n  :arg1-pair :pair \n  :hang :extend\n    :arg1-extend :fn \n    :arg1-> :noarg1-body \n    :noarg1 :arg2 \n    :arg2-extend :arg2-pair\n    :arg2-fn :none \n    :none-body :arg1-force-nl \n    :gt2-force-nl :gt3-force-nl \n    :flow :flow-body \n    :force-nl-body \n    :force-nl :pair-fn}"
+    {:parse-string? true, :set {:respect-nl? true}}))

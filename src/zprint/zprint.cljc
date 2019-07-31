@@ -4617,7 +4617,10 @@
                   (fzprint* roptions one-line-ind arg-1-zloc #_(zfirst zloc))
                   pre-arg-2-style-vec
                   r-str-vec)
-      ; Must have at least two elements, third thru n are optional
+      ; In general, we don't have a fn-style if we have less than 3 elements.
+      ; However, :binding is allowed with any number up to this point, so we 
+      ; have to check here.  :binding is actually allowed with at least two
+      ; elements, the third through n are optional. 
       (and (= fn-style :binding) (> len 1) (zvector? arg-2-zloc))
         (let [[hang-or-flow binding-style-vec]
                 (fzprint-hang-unless-fail loptions
