@@ -16,7 +16,8 @@
       zwhitespaceorcomment? zmap-all zpromise? zfuture? zdelay? zkeyword?
       zconstant? zagent? zreader-macro? zarray-to-shift-seq zdotdotdot zsymbol?
       znil? zreader-cond-w-symbol? zreader-cond-w-coll? zlift-ns zinlinecomment?
-      zfind zmap-w-nl ztake-append znextnws-w-nl znextnws znamespacedmap?]]
+      zfind zmap-w-nl zmap-w-nl-comma ztake-append znextnws-w-nl znextnws 
+      znamespacedmap?]]
     [zprint.ansi :refer [color-str]]
     [zprint.config :refer [validate-options merge-deep]]
     [zprint.zutil :refer [add-spec-to-docstring]]
@@ -293,7 +294,7 @@
         (when (or (and (coll? c) (not (empty? c))) (not (nil? c)))
           (recur (next coll) (conj! out c)))))))
 
-(defn concat-no-nil-orig
+(defn concat-no-nil-pre-noseq
   "Concatentate multiple sequences, but if any of them are nil or empty
   collections, return nil."
   [& rest]
@@ -306,6 +307,21 @@
     (when result (persistent! result))))
 
 (defn concat-no-nil
+  "Concatentate multiple sequences, but if any of them are nil or empty
+  collections, return nil. If any of them are :noseq, just skip them."
+  [& rest]
+  (let [result (reduce (fn [v o]
+                         (if (coll? o)
+                           (if (empty? o) (reduced nil) (reduce conj! v o))
+                           (if (= :noseq o)
+                             ; if the supposed sequence is :noseq, skip it
+                             v
+                             (if (nil? o) (reduced nil) (conj! v o)))))
+                 (transient [])
+                 rest)]
+    (when result (persistent! result))))
+
+(defn concat-no-nil-debug
   "Concatentate multiple sequences, but if any of them are nil or empty
   collections, return nil. If any of them are :noseq, just skip them."
   [& rest]
@@ -4315,6 +4331,7 @@
                    ; are comment or comment-inline.  Later, for indent-shift,
                    ; they are :indents.  Figure this out!
                    newline? (= thetype :newline)
+		   comma? (= thetype :comma)
                    isempty? (empty? (first (first this-seq)))
                    comment? (or (= thetype :comment)
                                 (= thetype :comment-inline))
@@ -4350,8 +4367,10 @@
                  "lines:" lines
                  "linecnt:" linecnt
                  "multi?" multi?
+		 "thetype:" thetype
                  "newline?:" newline?
                  "comment?:" comment?
+		 "comma?:" comma?
                  ;"first-newline?:" first-newline?
                  ;"first-comment?:" first-comment?
                  "l-str-indent?:" l-str-indent?
@@ -4397,7 +4416,7 @@
                                            :none :indent]]
                                          this-seq)
                        newline-after?
-                         (if beginning?
+                         (if (or beginning? comma?)
                            (concat-no-nil
                              this-seq
                              [[(str "\n"
@@ -4416,7 +4435,7 @@
                                   #_actual-indent)) :none :indent]]
                        ; Remove next line, unnecessary
                        (zero? index) this-seq
-                       :else (if beginning?
+                       :else (if (or beginning? comma?)
                                this-seq
                                (concat-no-nil [[" " :none :whitespace]]
                                               this-seq)))))))))))))
@@ -4725,7 +4744,10 @@
                    "arg-1-indent:" arg-1-indent
                    "flow-indent:" flow-indent
                    "actual-ind:" actual-ind)
-         zloc-seq (zmap-w-nl identity zloc)
+	 ; We could enable :comma? for lists, sets, vectors someday
+         zloc-seq (if (:comma? (caller options))
+	            (zmap-w-nl-comma identity zloc)
+	            (zmap-w-nl identity zloc))
          coll-print (fzprint-seq options ind zloc-seq)
          _ (dbg-pr options "fzprint-indent: coll-print:" coll-print)
          indent-only-style (:indent-only-style (caller options))
@@ -7115,6 +7137,8 @@
                         [[zcomment (zcolor-map options :comment) :comment-inline
                           inline-spaces]]
                         [[zcomment (zcolor-map options :comment) :comment]])))
+		
+                (= (ztag zloc) :comma) [[zstr :none :comma]]
                 ; Really just testing for whitespace, comments filtered above
                 (zwhitespaceorcomment? zloc) [[zstr :none :whitespace]]
                 ; At this point, having filtered out whitespace and
