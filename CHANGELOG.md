@@ -21,7 +21,9 @@ All notable changes to this project will be documented in this file.
     correctly or because lines are too long.  Can be used both as a style
     for everything, or more frequently as a style to be used when formatting
     a particular function where one of the existing formatting styles isn't
-    quite right.
+    quite right.  If you have a function "func" which would be better 
+    handled with `:style :respect-nl`, then an options map of
+    `{:fn-map {"func" [:none {:style :respect-nl}]}}` will do that for you.
 
   * Indent Only.  Will not remove or add newlines -- will only regularize
     white space while preserving the content of each line.  This is very
@@ -30,7 +32,10 @@ All notable changes to this project will be documented in this file.
     also available as style: `:style :indent-only`, which is the recommended
     way to use it (if you want this capability).  See the documentation for
     details.  It will clean up the indenting and white space, while doing
-    little else. 
+    little else.   You can do this for a whole file by specifying the options
+    map `{:style :indent-only}`, or for a single function (say "func") by
+    giving this options map: 
+    `{:fn-map {"func" [:none {:style :indent-only}]}}`.
 
 ### Changed
 
