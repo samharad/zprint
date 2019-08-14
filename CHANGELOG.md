@@ -49,6 +49,17 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+  * If you entered: 
+```clojure
+(;comment
+ function this that and the other)
+```
+   then `function` would not previously have been recognized if it
+   was defined in the `:fn-map`.  The "thing" in the first part of the
+   list was what was looked up, and if it was a comment, that was too
+   bad.  Now zprint will look up only actual symbols, not comments
+   (or newlines).
+
 ## 0.4.16 - 2019-06-12
 
 ### Added
