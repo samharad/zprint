@@ -7005,6 +7005,8 @@
              (concat [new-caller] key-seq)
              #(do % (get-in options (concat [existing-caller] key-seq)))))
 
+(declare inlinecomment?)
+
 ;; Fix fzprint* to look at cursor to see if there is one, and
 ;; fzprint to set cursor with binding.  If this works, might pass
 ;; it around.  Maybe pass ctx to everyone and they can look at it
@@ -7126,7 +7128,8 @@
                         ; otherwise we get left with :comment-inline element
                         ; types that don't go away
                         inline-spaces (when (:inline? (:comment options))
-                                        (zinlinecomment? zloc))]
+					(inlinecomment? zloc)
+                                        #_(zinlinecomment? zloc))]
                     (dbg options "fzprint* trim-comments?:" trim-comments?
 		                 "inline-spaces:" inline-spaces)
                     (if (and (:count? (:comment options)) overflow-in-hang?)
@@ -7170,6 +7173,44 @@
 ;;
 ;; # Comment Wrap Support
 ;;
+
+(defn inlinecomment?
+  "If this is an inline comment, returns the amount of space that
+  was between this and the previous element.  That means that if
+  we go left, we get something other than whitespace before a
+  newline.  If we get only whitespace before a newline, then
+  this is considered an inline comment if the comment at the end
+  of the previous line was an inline comment. Assumes zloc is a comment."
+  [zloc]
+  #_(prn "inlinecomment? zloc:" (zstring zloc))
+  (loop [nloc (zprint.zutil/left* zloc)
+         spaces 0]
+    (let [tnloc (ztag nloc)]
+      #_(prn "inlinecomment? tnloc:" tnloc)
+      (cond
+        (nil? tnloc) nil  ; the start of the zloc
+        (= tnloc :newline) nil
+        (= tnloc :comment)
+          ; Two comments in a row don't have a newline showing between
+          ; them, it is captured by the first comment.  Sigh.
+          (do #_(prn "inlinecomment? found previous comment!")
+              ; is it an inline comment?
+              (when (inlinecomment? nloc)
+                ; figure the total alignment from the newline
+                (let [nloc-length-before (length-before nloc)
+                      zloc-length-before (length-before zloc)]
+                  #_(prn "inlinecomment?:"
+                       "nloc-length-before:" nloc-length-before
+                       "zloc-length-before:" zloc-length-before
+                       "spaces:" spaces)
+                  (if (= nloc-length-before zloc-length-before)
+                    ; we have a lineup
+                    spaces
+                    nil))))
+        (not= tnloc :whitespace) spaces
+        :else (recur (zprint.zutil/left* nloc)
+                     ^long (+ ^long (zprint.zutil/length nloc) spaces))))))
+
 
 (defn last-space
   "Take a string and an index, and look for the last space prior to the
@@ -7294,12 +7335,72 @@
         out-style-vec (lift-style-vec wrap-style-vec)]
     out-style-vec))
 
+(defn find-element-from-end
+  "Find a the first element of this type working from the end of a 
+  style-vec.  Return the index of the element."
+  [element-type style-vec]
+  (loop [index (dec (count style-vec))]
+    (if (neg? index)
+      nil
+      (let [[_ _ e] (nth style-vec index)]
+        (if (= e element-type) 
+	  index 
+	  (recur (dec index)))))))
+
+(defn line-size
+  "Given a style-vec, how big is it in actual characters.  This doesn't
+  handle newlines."
+  [style-vec]
+  (apply + (map (partial loc-vec 0) style-vec)))
+
+(defn space-before-comment
+  "Given a style-vec, whose last element in a comment, find the amount
+  of space before that comment on the line."
+  [style-vec]
+  (let [indent-index (find-element-from-end :indent style-vec)
+        this-line-vec
+          (if indent-index (nthnext style-vec indent-index) style-vec)]
+    (line-size (butlast this-line-vec))))
+
 (defn fzprint-inline-comments
   "Try to bring inline comments back onto the line on which they belong."
   [{:keys [width], :as options} style-vec]
   #_(def fic style-vec)
   (dbg-pr options "fzprint-inline-comments:" style-vec)
   (loop [cvec style-vec
+         last-out ["" nil nil]
+         out []]
+    (if-not cvec
+      out
+      (let [[s c e :as element] (first cvec)
+            [_ _ ne nn :as next-element] (second cvec)
+            [_ _ le] last-out
+            new-element
+              (cond
+                (and (= e :indent) (= ne :comment-inline))
+                  (if-not (= le :comment)
+                    ; Regular line to get the inline comment
+                    [(blanks nn) c :whitespace]
+                    ; Last element was a comment...
+                    ; Can't put a comment on a comment, but
+                    ; we want to indent it like the last
+                    ; comment.
+                    ; How much space before the last comment?
+                    (do #_(prn "inline:" (space-before-comment out))
+                        [(str "\n" (blanks (space-before-comment out))) c
+                         :indent]
+                        #_element))
+                (= e :comment-inline) [s c :comment]
+                :else element)]
+        (recur (next cvec) new-element (conj out new-element))))))
+
+(defn fzprint-inline-comments-alt
+  "Try to bring inline comments back onto the line on which they belong."
+  [{:keys [width], :as options} style-vec]
+  (def fic style-vec)
+  (dbg-pr options "fzprint-inline-comments:" style-vec)
+  (loop [cvec style-vec
+	 last-out ["" nil nil]
          out []]
     (if-not cvec
       out
@@ -7309,7 +7410,7 @@
                                 [(blanks nn) c :whitespace]
                               (= e :comment-inline) [s c :comment]
                               :else element)]
-        (recur (next cvec) (conj out new-element))))))
+        (recur (next cvec) new-element (conj out new-element))))))
 
 ;;
 ;; # External interface to all fzprint functions
