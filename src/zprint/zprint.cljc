@@ -7190,7 +7190,7 @@
       (cond
         (nil? tnloc) nil  ; the start of the zloc
         (= tnloc :newline) nil
-        (= tnloc :comment)
+        (or (= tnloc :comment) (= tnloc :comment-inline))
           ; Two comments in a row don't have a newline showing between
           ; them, it is captured by the first comment.  Sigh.
           (do #_(prn "inlinecomment? found previous comment!")
@@ -7244,7 +7244,7 @@
   Note that top level comments may well end with a newline, so remove it
   and reapply it at the end if that is the case."
   [width [s color stype :as element] start]
-  (if-not (= stype :comment)
+  (if-not (or (= stype :comment) (= stype :comment-inline))
     element
     (let [comment-width (- width start)
           semi-str (re-find #";*" s)
@@ -7371,14 +7371,14 @@
          last-out ["" nil nil]
          out []]
     (if-not cvec
-      out
+      (do #_(def fico out) out)
       (let [[s c e :as element] (first cvec)
             [_ _ ne nn :as next-element] (second cvec)
             [_ _ le] last-out
             new-element
               (cond
                 (and (= e :indent) (= ne :comment-inline))
-                  (if-not (= le :comment)
+                  (if-not (or (= le :comment) (= le :comment-inline))
                     ; Regular line to get the inline comment
                     [(blanks nn) c :whitespace]
                     ; Last element was a comment...
@@ -7390,27 +7390,160 @@
                         [(str "\n" (blanks (space-before-comment out))) c
                          :indent]
                         #_element))
-                (= e :comment-inline) [s c :comment]
+		; Don't turn inline-comments into comments
+                #_#_(= e :comment-inline) [s c :comment]
                 :else element)]
         (recur (next cvec) new-element (conj out new-element))))))
 
-(defn fzprint-inline-comments-alt
-  "Try to bring inline comments back onto the line on which they belong."
-  [{:keys [width], :as options} style-vec]
-  (def fic style-vec)
-  (dbg-pr options "fzprint-inline-comments:" style-vec)
+;;
+;; ## Align inline comments
+;;
+
+(defn find-consecutive-inline-comments
+  "Given a style-vec, find consecutive inline comments and output
+  the as a sequence of vectors of comments.  Each comment itself
+  is a vector: [indent-index inline-comment-index], yielding a
+  [[[indent-index inline-comment-index] [indent-index inline-comment-index]
+  ...] ...]"
+  [style-vec]
+  (def fcic style-vec)
   (loop [cvec style-vec
-	 last-out ["" nil nil]
+         index 0
+         last-indent 0
+         current-seq []
          out []]
     (if-not cvec
-      out
-      (let [[s c e :as element] (first cvec)
-            [_ _ ne nn :as next-element] (second cvec)
-            new-element (cond (and (= e :indent) (= ne :comment-inline))
-                                [(blanks nn) c :whitespace]
-                              (= e :comment-inline) [s c :comment]
-                              :else element)]
-        (recur (next cvec) new-element (conj out new-element))))))
+      (do #_(def fcico out) out)
+      (let [[s c e :as element] (first cvec)]
+        (cond
+          (= e :comment-inline) (recur (next cvec)
+                                       (inc index)
+                                       nil
+                                       (if last-indent
+                                         (conj current-seq [last-indent index])
+                                         (do (throw
+                                               (#?(:clj Exception.
+                                                   :cljs js/Error.)
+                                                (str "concat-no-nil:" index)))
+                                             []))
+                                       out)
+          (= e :indent)
+            (recur (next cvec)
+                   (inc index)
+                   index
+                   (if last-indent
+                     ; if we have a last-indent, then we didn't
+                     ; just have a comment
+                     []
+                     ; if we don't have a last-indent, then we
+                     ; did just have a comment previously, so keep
+                     ; collecting comments
+                     current-seq)
+                   (if last-indent
+                     ; if we have a last-indent, then we didn't
+                     ; just have a comment.  But if we have more
+                     ; than one comment vector in current-seq,
+                     ; make sure we keep track of that
+                     (if (> (count current-seq) 1) (conj out current-seq) out)
+                     ; if we didn't have last-indent, then we
+                     ; just had a comment, so keep collecting
+                     ; them
+                     out))
+          :else (recur (next cvec) (inc index) last-indent current-seq out))))))
+
+(defn comment-column
+  "Takes a single vector of [indent-index comment-index] and will show the
+  column on the line in which the comment starts."
+  [[indent-index comment-index] style-vec]
+  (when-not (vector? style-vec)
+    (throw (#?(:clj Exception.
+               :cljs js/Error.)
+            (str "comment-column: style-vec not a vector!! " style-vec))))
+  (loop [index indent-index
+         column 0]
+    (if (= index comment-index)
+      column
+      (recur (inc index) (loc-vec column (nth style-vec index))))))
+
+(defn comment-vec-column
+  "Take a single inline comment vector:
+  [indent-index inline-comment-index] 
+  and replace it with [inline-comment-index start-column spaces-before]."
+  [style-vec [indent-index inline-comment-index :as comment-vec]]
+  (let [start-column (comment-column comment-vec style-vec)
+        spaces-before (loc-vec 0 (nth style-vec (dec inline-comment-index)))]
+    [inline-comment-index start-column spaces-before]))
+
+(defn comment-vec-seq-column
+  "Take a single vector of inline comments
+  [[indent-index inline-comment-index] [indent-index inline-comment-index]
+   ...] and replace it with [[inline-comment-index start-column spaces-before]
+   [inline-comment-index start-column spaces-before] ...]"
+  [style-vec comment-vec-seq]
+  (map (partial comment-vec-column style-vec) comment-vec-seq))
+
+(defn comment-vec-all-column
+  "Take a seq of all of the comments as produced by 
+  find-consecutive-inline-comments, and turn it into:
+  [[[inline-comment-index start-column spaces-before] [inline-comment-index
+  start-column spaces-before]
+  ...] ...]"
+  [style-vec comment-vec-all]
+  (map (partial comment-vec-seq-column style-vec) comment-vec-all))
+
+(defn minimum-column
+  "Given a set of inline comments:
+  [[inline-comment-index start-column spaces-before]
+   [inline-comment-index start-column spaces-before] ...], determine
+   the minimum column at which they could be aligned."
+  [comment-vec]
+  (let [minimum-vec (map #(inc (- (second %) (nth % 2))) comment-vec)
+        minimum-col (apply max minimum-vec)]
+    minimum-col))
+
+(defn change-start-column
+  "Given a new start-column, and a vector 
+  [[inline-comment-index start-column spaces-before]
+  and a style-vec, return a new style-vec with the inline-comment starting
+  at a new column."
+  [new-start-column style-vec
+   [inline-comment-index start-column spaces-before :as comment-vec]]
+  (let [delta-spaces (- new-start-column start-column)
+        new-spaces (+ spaces-before delta-spaces)
+        previous-element-index (dec inline-comment-index)
+        #_(prn "change-start-column:"
+               "spaces-before:" spaces-before
+               "delta-spaces:" delta-spaces
+               "new-spaces:" new-spaces)
+        [s c e :as previous-element] (nth style-vec previous-element-index)
+        new-previous-element
+          (cond (= e :indent) [(str "\n" (blanks new-spaces)) c e]
+                (= e :whitespace) [(str (blanks new-spaces)) c e]
+                :else (throw
+                        (#?(:clj Exception.
+                            :cljs js/Error.)
+                         (str "change-start-column: comment preceded by neither"
+                              " an :indent nor :whitespace!"
+                              e))))]
+    (assoc style-vec previous-element-index new-previous-element)))
+
+(defn align-comment-vec
+  "Given one set of inline comments: 
+  [[inline-comment-index start-column spaces-before]
+   [inline-comment-index start-column spaces-before] ...], align them 
+   as best as possible, and return the modified style-vec."
+  [style-vec comment-vec]
+  (let [minimum-col (minimum-column comment-vec)] 
+    (reduce (partial change-start-column minimum-col)
+            style-vec
+	    comment-vec)))
+
+(defn fzprint-align-inline-comments
+  "Given the current style-vec, align all consecutive inline comments."
+  [options style-vec]
+  (let [comment-vec (find-consecutive-inline-comments style-vec)
+        comment-vec-column (comment-vec-all-column style-vec comment-vec)]
+    (reduce align-comment-vec style-vec comment-vec-column)))
 
 ;;
 ;; # External interface to all fzprint functions
