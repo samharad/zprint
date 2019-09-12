@@ -3947,7 +3947,7 @@ ser/collect-vars-acc %1 %2) )))"
     {:parse-string? true,
      :fn-map {"comment" [:none
                          {:list {:respect-nl? true},
-                          :reset {:list {:respect-nl? false}}}]}}))
+                          :next-inner {:list {:respect-nl? false}}}]}}))
 
 ;;
 ;; Issue #39
@@ -3975,7 +3975,7 @@ ser/collect-vars-acc %1 %2) )))"
      :width 80,
      :fn-map {"defn" [:arg2
                       {:fn-force-nl #{:arg2},
-                       :reset {:remove {:fn-force-nl #{:arg2}}}}]}}))
+                       :next-inner {:remove {:fn-force-nl #{:arg2}}}}]}}))
 
 (expect
   "(defn thefn [a b c]\n  (swap! this is\n    (only a test))\n  (list a b c))"

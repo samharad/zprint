@@ -7140,19 +7140,19 @@
   "The pretty print part of fzprint."
   [{:keys [width rightcnt fn-map hex? shift-seq dbg? dbg-print? in-hang?
            one-line? string-str? string-color depth max-depth trim-comments?
-           in-code? max-hang-depth max-hang-span max-hang-count reset],
+           in-code? max-hang-depth max-hang-span max-hang-count next-inner],
     :as options} indent zloc]
   (let [avail (- width indent)
         ; note that depth affects how comments are printed, toward the end
         options (assoc options :depth (inc depth))
-        options
-          #_(if reset (dissoc (merge-deep options reset) :reset) options)
-          (if reset
-            (dissoc
-              (first
-                (zprint.config/config-and-validate "reset:" nil options reset))
-              :reset)
-            options)
+        options (if next-inner
+                  (dissoc
+                    (first (zprint.config/config-and-validate "next-inner:"
+                                                              nil
+                                                              options
+                                                              next-inner))
+                    :next-inner)
+                  options)
         options (if (or dbg? dbg-print?)
                   (assoc options
                     :dbg-indent (str (get options :dbg-indent "")
