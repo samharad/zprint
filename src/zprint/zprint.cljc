@@ -25,7 +25,8 @@
     [rewrite-clj.zip :as z]
     #_[taoensso.tufte :as tufte :refer (p defnp profiled profile)]))
 
-(declare interpose-nl-hf)
+(declare interpose-nl-hf-new)
+#_(declare interpose-nl-hf)
 
 ;;
 ;; # Utility Functions
@@ -723,7 +724,7 @@
 (declare fzprint-binding-vec)
 (declare middle-element?)
 
-(defn fzprint-two-up
+#_(defn fzprint-two-up
   "Print a single pair of things (though it might not be exactly a
   pair, given comments and :extend and the like), like bindings in
   a let, clauses in a cond, keys and values in a map.  Controlled
@@ -1343,7 +1344,7 @@
   [hf-style-vec]
   (when hf-style-vec (map second hf-style-vec)))
 
-(defn fzprint-map-two-up
+#_(defn fzprint-map-two-up
   "Accept a sequence of pairs, and map fzprint-two-up across those pairs.
   If you have :one-line? set, this will return nil if it is way over,
   but it can't accurately tell exactly what will fit on one line, since
@@ -1670,7 +1671,7 @@
 ;; # Pre-processing for two-up printing
 ;;
 
-(defn partition-all-2-nc
+#_(defn partition-all-2-nc
   "Input is (zseqnws zloc) where one assumes that these are pairs.
   Thus, a seq of zlocs.  Output is a sequence of seqs, where the
   seqs are usually pairs, but might be single things.  Doesn't pair
@@ -1820,7 +1821,7 @@
         split-non-coll
         (concat (list remainder) split-non-coll)))))
 
-(defn partition-all-sym
+#_(defn partition-all-sym
   "Similar to partition-all-2-nc, but instead of trying to pair things
   up (modulo comments and unevaled expressions), this begins things
   with a symbol, and then accumulates collections until the next symbol.
@@ -2045,15 +2046,15 @@
                 (concat-no-nil l-str-vec r-str-vec)
                 (concat-no-nil
                   l-str-vec
-                  (interpose-nl-hf
+                  (interpose-nl-hf-new
                     (:binding options)
                     (inc ind)
-                    (fzprint-map-two-up
+                    (fzprint-map-two-up-new
                       :binding
                       options
                       (inc ind)
                       false
-                      (second (partition-all-2-nc options (zseqnws zloc)))))
+                      (second (partition-all-2-nc-new options (zseqnws zloc)))))
                   r-str-vec)))))
 
 (defn fzprint-hang
@@ -2098,9 +2099,8 @@
                                      fd-lines))]
         (if hr-good? hanging flow)))))
 
-(declare interpose-nl-hf-new)
 
-(defn fzprint-pairs
+#_(defn fzprint-pairs
   "Always prints pairs on a different line from other pairs."
   [{{:keys [nl-separator?]} :pair, :as options} ind zloc]
   (dbg options "fzprint-pairs:" (zstring (zfirst zloc)))
@@ -2144,7 +2144,7 @@
                (map (comp zstring first) part))
           part)))))
 
-(defn fzprint-extend
+#_(defn fzprint-extend
   "Print things with a symbol and collections following.  Kind of like with
   pairs, but not quite. This skips over zloc and does everything to the
   right of it!"
@@ -2409,7 +2409,7 @@
 ;; # Constant pair support
 ;;
 
-(defn count-constant-pairs
+#_(defn count-constant-pairs
   "Given a seq of zlocs, work backwards from the end, and see how
   many elements are pairs of constants (using zconstant?).  So that
   (... :a (stuff) :b (bother)) returns 4, since both :a and :b are
@@ -2443,7 +2443,7 @@
                      0
                      (inc pair-size)))))))))
 
-(defn constant-pair
+#_(defn constant-pair
   "Argument is result of (zmap-right identity zloc), that is to say
   a seq of zlocs.  Output is a [pair-seq non-paired-item-count],
   if any.  If there are no pair-seqs, pair-seq must be nil, not
@@ -2934,7 +2934,7 @@
     ([caller options hindent findent zloc fn-style]
      (fzprint-hang-remaining caller options hindent findent zloc fn-style nil)))
 
-(defn fzprint-hang-remaining ;-original
+#_(defn fzprint-hang-remaining ;-original
   "zloc is already down inside a collection, it is not the collection
   itself. Operate on what is to the right of zloc.  We already know
   that the given zloc won't fit on the current line. [Besides, we
@@ -3250,7 +3250,7 @@
       style-vec
       (concat-no-nil style-vec [[(str "\n" (blanks ind)) :none :indent]]))))
 
-(defn fzprint-hang-remaining-new 
+(defn fzprint-hang-remaining-new
   "zloc-seq is a seq of zlocs of a collection.  We already know
   that the given zloc won't fit on the current line. [Besides, we
   ensure that if there are two things remaining anyway. ???] So
@@ -6140,7 +6140,7 @@
   (fzprint-vec* :set "#{" "}" (rightmost options) ind zloc))
 
 ; not clear transient helps here
-(defn interpose-either
+#_(defn interpose-either
   "Do the same as interpose, but different seps depending on pred?."
   [sep-true sep-nil pred? coll]
   (loop [coll coll
@@ -6245,7 +6245,7 @@
                (or newline? comment?)
                comment?)))))
 
-(defn precede-w-nl
+#_(defn precede-w-nl
   "Move through a sequence of style vecs and ensure that at least
   one newline (actually an indent) appears before each element.  If
   a newline in the style-vecs is where we wanted one, well and good.
@@ -6309,7 +6309,7 @@
 
 ; transient helped a lot here
 
-(defn interpose-either-nl-hf
+#_(defn interpose-either-nl-hf
   "Do the same as interpose, but different seps depending on pred-fn
   return and nl-separator?."
   [sep-true sep-true-nl sep-nil sep-nil-nl
@@ -6461,7 +6461,7 @@
                 #_0 ;newline-count
                 )))))))
 
-(defn interpose-nl-hf
+#_(defn interpose-nl-hf
   "Put a single or double line between pairs returned from fzprint-map-two-up.
   The first argument is the map resulting from (:map options) or (:pair options)
   or whatever.  It should have :nl-separator? and :nl-separator-flow? in it."
@@ -6492,7 +6492,7 @@
                               nil
                               coll))
 
-(defn fzprint-map*
+#_(defn fzprint-map*
   [caller l-str r-str
    {:keys [one-line? ztype map-depth in-code?],
     {:keys [comma? key-ignore key-ignore-silent nl-separator? force-nl? lift-ns?
@@ -6687,7 +6687,8 @@
                                     pair-print-one-line)
               one-line (when pair-print-one-line
                          (apply concat-no-nil
-                           (interpose-either [[", " :none :whitespace]]
+			   ; TODO: see how this differs from interpose-either
+                           (interpose-either-new [[", " :none :whitespace]]
                                              [[" " :none :whitespace]]
                                              (constantly comma?)
                                              pair-print-one-line)))
@@ -7049,7 +7050,7 @@
       [["" :none :element]]
       (if reader-cond?
         ; yes rightmost, this is a collection
-        (fzprint-map* :reader-cond
+        (fzprint-map*-new :reader-cond
                       "("
                       ")"
                       (rightmost options)
