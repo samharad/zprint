@@ -2221,23 +2221,6 @@
     (let [zloc-tag (ztag zloc)]
       (or (= zloc-tag :newline) (= zloc-tag :comment)))))
 
-(defn up-to-next-zloc
-  "Given a zloc, gather newlines and comments up to the next zloc into a seq.
-  If the zloc is a newline or comment, don't skip it.  If it is not, then skip
-  it.  Returns [seq next-zloc next-count]. Note that next-count (to say
-  nothing of the seq) will be different based on the value of respect-nl?.
-  If respect-nl? is non-nil, then there will be newlines in the seq and
-  they will be reflected in the count."
-  [respect-nl? zloc]
-  (loop [nloc zloc
-         out []
-         next-count 0]
-    (if (not (newline-or-comment? nloc))
-      [out nloc next-count]
-      (recur (if respect-nl? (znextnws-w-nl nloc) (znextnws nloc))
-             (conj out nloc)
-             (inc next-count)))))
-
 (defn remove-last-newline
   "Given a seq of style-vecs, look at the last one, and if it is a
   :newline, then remove it.  But the last one might be a single
@@ -2266,122 +2249,6 @@
       (concat fzprint*-return [[(str "\n" (blanks indent)) :none :newline]])
       fzprint*-return)))
 
-(defn fzprint-up-to-next-zloc-orig
-  "Take a current position, and move right, turning any comments
-  and (possibly) newlines into style-vec elements, and keeping track
-  of the ind and number of things passed while doing so.  Returns
-  [new-ind style-vec next-zloc next-count-from-zloc], where new-ind
-  and next-count-from-zloc always has a value, style-vec always has
-  a value (since nil isn't happy), and next-zloc might be nil. Note
-  that, depending on the value of (:respect-nl? (caller options)),
-  the style-vec and next-count-from-zloc might include information
-  about newlines, or not.
-  NOTE: This is only called for zippers!!!"
-  ([caller options hindent findent zloc skip-first?]
-   (dbg-pr options
-           "fzprint-up-to-next-zloc-orig: hindent:" hindent
-           "findent:" findent
-           "skip-first?:" skip-first?
-           "zloc:" (zstring zloc))
-   (let [respect-nl? (:respect-nl? (caller options))
-         [zloc-seq next-zloc next-count]
-           (up-to-next-zloc
-             respect-nl?
-             ; Do the skip for skip-first? here
-             (if (or skip-first?
-                     ; If we are not skipping, but we are sitting on
-                     ; whitespace, lets move off of it.
-                     (if respect-nl?
-                       (zprint.zutil/whitespace-not-newline? zloc)
-                       (zprint.zutil/whitespace? zloc)))
-               (if respect-nl? (znextnws-w-nl zloc) (znextnws zloc))
-               zloc))
-         ; account for any skip first
-         next-count (if skip-first? (inc next-count) next-count)]
-     (dbg-form
-       options
-       "fzprint-up-to-next-zloc-orig exit:"
-       (if (empty? zloc-seq)
-         [hindent :noseq next-zloc next-count]
-         ; By definition, everything in zloc-seq will contain newlines
-         ; either explicit or implicit
-         (let [coll-print (fzprint-seq options findent zloc-seq)
-               coll-print (map (partial add-newline-to-comment findent)
-                            coll-print)
-               ; If we doing flow (which we are), if a hang was possible
-               ; (which we determine by comparing hindent and findent),
-               ; then remove the last :newline, if any.
-               ;
-               ; But now we don't really know if a hang was possible because
-               ; we are doing this much earlier in fzprint-list*, so we
-               ; will remove the last new-line if we skipped something,
-               ; which will kind of be because a hang was possible.
-	       ; NOTE: we might be removing the only hang after a comment,
-	       ; and so we need to check for that and not hang.
-               _ (dbg-pr options
-                         "fzprint-up-to-next-zloc-orig: coll-print:"
-                         coll-print)
-               coll-print
-                 (if skip-first? (remove-last-newline coll-print) coll-print)
-               newline-first? (= (nth (first (first coll-print)) 2) :newline)
-               newline-last? (= (nth (last (last coll-print)) 2) :newline)]
-           ; coll-print should never be :noseq or nil here
-           ; TODO: take out the coll? coll-print below because of this
-           (dbg-pr options
-                   "fzprint-up-to-next-zloc-orig: newline-last?" newline-last?
-                   "coll-print:" coll-print)
-           [findent
-            (concat-no-nil (if (or newline-first? (not skip-first?))
-                             :noseq
-                             (if (or (= (nth (first (first coll-print)) 2)
-                                        :comment-inline)
-                                     (= (nth (first (first coll-print)) 2)
-                                        :comment))
-                               [[(str "\n" (blanks findent)) :none :indent]]
-                               [[" " :none :none]]))
-                           (apply concat-no-nil coll-print)
-                           ; We use skip-first? as a sentinal for whether or
-                           ; not the next thing will flow.  If we are
-                           ; (not skip-first?), then we are doing the first
-                           ; stuff in a list, and we aren't going to flow
-                           ; the first actual zloc we care about, so we better
-                           ; be sure we have a newline in there if we don't
-                           ; already.  Otherwise, we expect to get one
-                           ; by the thing that flows.
-                           (if (and (not skip-first?) (not newline-last?))
-                             [[(str "\n" (blanks findent)) :none :indent]]
-                             :noseq)) next-zloc next-count])))))
-  ([caller options hindent findent zloc]
-   (fzprint-up-to-next-zloc-orig caller options hindent findent zloc :skip-first)))
-
-; Original approach
-
-(defn fzprint-up-to-second-zloc
-  "Returns [[pre-first-style-vec pre-second-style-vec]
-            [first-zloc second-zloc]
-            [next-to-first next-to-second]
-	    zloc-seq] 
-  where the style vecs will be :noseq if there is nothing to do.
-  Note that newlines will be included in the style-vecs, next-to-
-  counts, and zloc-seq if (:respect-nl? (caller options)) is non-nil."
-  [caller options ind zloc]
-  (if-not (= (:ztype options) :zipper) 
-    [[:noseq :noseq] [(first zloc) (second zloc)] [0 1] zloc]
-    (let [[first-ind pre-first-style-vec first-zloc first-count]
-            (fzprint-up-to-next-zloc-orig caller options ind ind (zstart zloc) false)
-          ;; How to handle the new-ind stuff -- who does arg-1-indent?
-          ;; fzprint-up-to-next-zloc-orig?  This routine?
-          [second-ind pre-second-style-vec second-zloc second-count]
-            (fzprint-up-to-next-zloc-orig caller
-                                     options
-                                     first-ind
-                                     ind
-                                     first-zloc
-                                     true)]
-      [[pre-first-style-vec pre-second-style-vec] [first-zloc second-zloc]
-       [first-count (+ first-count second-count)]
-       (fzprint-get-zloc-seq caller options zloc)])))
-
 (defn gather-up-to-next-zloc
   "Given a zloc-seq, gather newlines and comments up to the next
   zloc into a seq.  Returns [seq next-zloc next-count]."
@@ -2394,8 +2261,6 @@
       (recur (next nloc-seq) 
              (conj out (first nloc-seq)) 
 	     (inc next-count)))))
-
-; New approach
 
 (defn fzprint-up-to-next-zloc
   "Using the information returned from fzprint-up-to-first-zloc or
@@ -2446,8 +2311,6 @@
                 #_#_coll-out (ensure-end-w-nl ind coll-out)]
             [coll-out next-zloc next-count zloc-seq]))))))
 
-; New approach
-
 (defn fzprint-up-to-first-zloc
   "Returns [pre-first-style-vec first-zloc first-count zloc-seq], where
   pre-first-style-vec will be :noseq if there isn't anything, and first-count
@@ -2459,35 +2322,6 @@
       ; Start at -1 so that when fzprint-up-to-next-zloc skips, it goes
       ; to zero.
       (fzprint-up-to-next-zloc caller options ind [nil nil -1 zloc-seq]))))
-
-(defn fzprint-up-to-first-zloc-alt
-  "Returns [pre-first-style-vec first-zloc first-count zloc-seq], where
-  pre-first-style-vec will be :noseq if there isn't anything, and first-count
-  is what you give to nthnext to get to the first-zloc in zloc-seq."
-  [caller options ind zloc]
-  (if-not (= (:ztype options) :zipper)
-    [:noseq (first zloc) 0 zloc]
-    (let [zloc-seq (fzprint-get-zloc-seq caller options zloc)
-          [pre-first-zloc-seq first-zloc first-count] (gather-up-to-next-zloc
-                                                        zloc-seq)]
-      (if (empty? pre-first-zloc-seq)
-        ; The normal case -- nothing before the first interesting zloc
-        [:noseq first-zloc first-count zloc-seq]
-        ; There were newlines or comments (or both) before the first
-        ; interesting zloc
-        (let [coll-print (fzprint-seq options ind pre-first-zloc-seq)
-              ; We need to make comments print right, and they have lost their
-              ; newlines
-              coll-print (map (partial add-newline-to-comment ind) coll-print)
-              ; We aren't trying to interpose anything here, we are just
-              ; trying to print the stuff we have in a way that will work.
-              coll-out (apply concat-no-nil coll-print)
-              ; Make sure it ends with a newline, since all comments and
-              ; newlines better end with a newline.  But how could it
-              ; not end with a newline?  We only put comments and newlines
-              ; in here, and added newlines to comments.
-              #_#_coll-out (ensure-end-w-nl ind coll-out)]
-          [coll-out first-zloc first-count zloc-seq])))))
 
 (defn get-zloc-seq-right
   "Using return from fzprint-up-to-first-zloc or fzprint-up-to-next-zloc,
@@ -2504,20 +2338,6 @@
       (dbg-pr "get-zloc-seq-right:" (map zstring zloc-seq))
       zloc-seq)))
 
-(defn get-zloc-seq-right-orig
-  "Using return from up-to-second (or fzprint-beyond-second) return a
-  zloc-seq pointer to just beyond a specific zloc, n. Note that n is
-  zero based, so for zfirst, use 0, zsecond, use 1."
-  [[style-vec-seq arg-zloc-seq next-count-seq full-zloc-seq :as up-to-data] n]
-  (if (>= n (count next-count-seq))
-    (throw (#?(:clj Exception.
-               :cljs js/Error.)
-            (str "get-zloc-seq-right-orig request for:" n
-                 "greater than length of arg-zloc-seq:" (count arg-zloc-seq))))
-    (let [zloc-seq (nthnext full-zloc-seq (inc (nth next-count-seq n)))]
-      (dbg-pr "get-zloc-seq-right-orig:" (map zstring zloc-seq))
-      zloc-seq)))
-	  
 ;;
 ;; # Indent-only support
 ;;
