@@ -45,7 +45,7 @@
      "      --url-only URL Load only options found from URL, ignore all others."
      "  -v  --version      Output the version of zprint."
      "  -e  --explain      Output configuration, showing where"
-     "                          non-default values (if any) came from."
+     "                     non-default values (if any) came from."
      ""
      " You can have either an <options-map> or <switches>, but not both!"
      ""]))
