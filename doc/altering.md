@@ -16,8 +16,8 @@ There are several ways to determine how to change the options map:
 #### I want to configure zprint to change...
 
   * [how user defined functions are formatted](./options/fns.md)
-  * [the indentation in lists](./indent.md)
-  * [the configuration to track the "community" standard](./options/std.md)
+  * [the indentation in lists](./options/indent.md)
+  * [the configuration to track the "community" standard](./options/community.md)
   * [how blank lines in source are handled](./options/blank.md)
   * [how map keys are formatted](./options/maps.md)
   * [the colors used for formatting source](./options/colors.md)
