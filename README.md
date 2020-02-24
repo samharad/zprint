@@ -2435,7 +2435,7 @@ into account when formatting.  In addition, comments can be
 word-wrapped if they don't fit the width, or not.  These are
 indpendent capabilities.
 
-#### :wrap? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :wrap? <span style="color:#A4A4A4;"><small>true</small></span>
 
 Wrap a comment if it doesn't fit within the width.  Works hard to preserve
 the initial part of the line and word wraps the end.  Does not pull
