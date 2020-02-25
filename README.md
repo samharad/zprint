@@ -5,13 +5,13 @@ of pretty printing capabilities for both Clojure code and Clojure/EDN
 structures.  It can meet almost anyone's needs.  As such, it supports
 the following major source code formattng approaches:
 
-  * [__classic zprint__](./types/classic.md) -- ignores whitespace in function definitions and 
+  * [__classic zprint__](./doc/types/classic.md) -- ignores whitespace in function definitions and 
   formats code with a variety of heuristics to look as good as 
   hand-formatted code
-  * [__respect blank lines__](./types/respectbl.md) -- similar to classic zprint, but blank lines 
+  * [__respect blank lines__](./doc/types/respectbl.md) -- similar to classic zprint, but blank lines 
   inside of function defintions are retained, while code is otherwise 
   formatted to look beautiful
-  * [__indent only__](./types/indentonly.md) -- very different from classic zprint -- no code ever
+  * [__indent only__](./doc/types/indentonly.md) -- very different from classic zprint -- no code ever
   changes lines, it is only correctly indented on whatever line it was already
   on
 
@@ -19,33 +19,33 @@ In addition, zprint is very handy [to use at the REPL](./types/repl.md).
 
 ## You can use zprint in many ways:
 
-  * [to format whole files](./using/files.md)
-  * [while using an editor](./using/editor.md)
-  * [at the REPL](./using/repl.md)
-  * [from inside a Clojure(script) program](./using/library.md)
+  * [to format whole files](./doc/using/files.md)
+  * [while using an editor](./doc/using/editor.md)
+  * [at the REPL](./doc/using/repl.md)
+  * [from inside a Clojure(script) program](./doc/using/library.md)
 
 ## Get zprint:
 
-  * [for macOS](./getting/macos.md)    _starts in <50 ms_
-  * [for Linux](./getting/linux.md)    _starts in <50 ms_
-  * [as an uberjar for any Java enabled platform](./getting/uberjar.md)    _starts in several seconds_
-  * [as an accelerated uberjar for any Java enabled platform](./getting/appcds.md)    _starts in about 1s_
+  * [for macOS](./doc/getting/macos.md)    _starts in <50 ms_
+  * [for Linux](./doc/getting/linux.md)    _starts in <50 ms_
+  * [as an uberjar for any Java enabled platform](./doc/getting/uberjar.md)    _starts in several seconds_
+  * [as an accelerated uberjar for any Java enabled platform](./doc/getting/appcds.md)    _starts in about 1s_
 
 ## Alter zprints formatting behavior:
 
-  * [what do you do to change zprint's behavior](./altering.md)
+  * [what do you do to change zprint's behavior](./doc/altering.md)
 
 ### I want to change...
 
-  * [how user defined functions are formatted](./options/fns.md)
-  * [the indentation in lists](./options/indent.md)
-  * [the configuration to track the "community" standard](./options/community.md)
-  * [how blank lines in source are handled](./options/blank.md)
-  * [how map keys are formatted](./options/maps.md)
-  * [the colors used for formatting source](./options/colors.md)
-  * [how the second element of a pair is indented](./options/pairs.md)
-  * [how comments are handled](./options/comments.md)
-  * [anything else...](./reference.md)
+  * [how user defined functions are formatted](./doc/options/fns.md)
+  * [the indentation in lists](./doc/options/indent.md)
+  * [the configuration to track the "community" standard](./doc/options/community.md)
+  * [how blank lines in source are handled](./doc/options/blank.md)
+  * [how map keys are formatted](./doc/options/maps.md)
+  * [the colors used for formatting source](./doc/options/colors.md)
+  * [how the second element of a pair is indented](./doc/options/pairs.md)
+  * [how comments are handled](./doc/options/comments.md)
+  * [anything else...](./doc/reference.md)
 
 
 ## Usage
