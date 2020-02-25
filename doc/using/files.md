@@ -11,7 +11,7 @@ There are several ways to use zprint to format entire source files:
 ```
 zprintm '{:width 90}` < myfile.clj > myfile.out.clj
 ```
-Get it for:  
+__Get it for__:  
   * [macOS](../getting/macos.md)
   * [Linux](../getting/linux.md)
 
@@ -28,9 +28,9 @@ Uberjar example:
 ```
 java -jar zprint-filter '{:width 90}' < myfile.clj > myfile.out.clj
 ```
-Get the: 
-  * Uberjar
-  * Appcds setup script (automates appcds setup)
+__Get the__: 
+  * [uberjar](../getting/uberjar.md)
+  * [accelerated uberjar](../getting/appcds.md)
 
 ## 3. Lein zprint
   * Leiningen plugin: `[lein-zprint "0.5.n"]`
@@ -44,7 +44,7 @@ lein zprint '{:width 90}' src/myproj/*.clj
 Processing file: src/myproj/myfile.clj
 Processing file: src/myproj/myotherfile.clj
 ```
-Get it: put `[lein-zprint "0.5.4"]` in the vector that is the value of
+__Get it__: put `[lein-zprint "0.5.4"]` in the vector that is the value of
 the `:plugins` key in `project.clj`:
 
 ```
