@@ -39,6 +39,8 @@ __Get the__:
   * Reads configuration from `~/.zprintrc`
   * Accept options map on command line
 
+For example, you might use it like this:
+
 ```
 lein zprint '{:width 90}' src/myproj/*.clj
 Processing file: src/myproj/myfile.clj

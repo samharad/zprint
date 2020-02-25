@@ -3,23 +3,26 @@ Many editors have a feature allowing you to pipe some segment of the
 text in the editor through an external program, and replace the existing
 text with the results of that external program.  To use zprint in this 
 environment, you must then:
-  * Install zprint to [format whole files](doc/using/files.md)
+  * Install zprint to [format whole files](./files.md)
   * Instruct your editor to send the text to zprint and use the result
 
 ## Install zprint to format whole files
-See [here](doc/using/files.md) for information on how to install zprint
+See [here](./files.md) for information on how to install zprint
 to format whole files.
 
 ## Instruct your editor to pipe text through an external program
 
-There are two aspects to using this effectively in your editing
+In this case, the external program though which you will pipe the text
+will be zprint.
+
+There are two aspects to using zprint effectively in your editing
 environment, and a third that can help:
 
-  1. How to move to the start of a function definition? [nice to have]
+  1. How to move to the start of a function definition? [_nice to have_]
 
-  2. How to select the text to send to zprint? [required]
+  2. How to select the text to send to zprint? [__required__]
 
-  3. How to actually send the text to zprint? [required]
+  3. How to actually send the text to zprint? [__required__]
 
 You may find one command that will do both #2 and #3 (see vim,
 below).  But they might be separate commands or keystrokes that you
