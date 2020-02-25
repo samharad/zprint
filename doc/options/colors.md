@@ -56,3 +56,8 @@ the color map to:
 ```
 This highlights the unevaluated code.  You can change any of these colors
 as well.
+
+If you wish to change the colors permanently, you can place these 
+options maps
+[anywhere an options map is accepted]
+(../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).

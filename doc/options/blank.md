@@ -32,3 +32,7 @@ to be kept in source.
   a line that is too long.  You can see 
   [examples of this here](../types/indentonly.md).
 
+You can place an options map like `{:style :respect-bl}`
+[anywhere an options map is accepted]
+(../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
+

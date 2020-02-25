@@ -82,45 +82,13 @@ subsequent elements, it will use a single space.  For example:
 ```
 ### Different indents for body functions and argument functions?
 
-At some point, the "community standards" for Clojure source formatting
-made a distinction between "body functions" and "argument functions",
-and wanted "argument functions" to have an indent of 1, and "body functions"
-to have an indent of 2.  The theory seemed to be that "body functions"
-were functions which had executable forms in them, oftern (though not
-always) of indeterminate number.  "Argument functions", on the other
-hand, had arguments (typically a fixed number) which were values and
-not primarily executable forms.  
+There is a full discussion of this in [community standards](./community.md).
 
-To support this (to my mind rather unnecessary and not widely adopted)
-distinction, zprint will accept the suffix `-body` to many of the function
-types, and will also accept a value for `:indent-arg`, which (if non-nil)
-will be used as the indent for argument functions (which is 
-everything that is not explicitly classified as a body function).
+## How to change indents for lists?
 
-You can get this sort of indentation by using `{:style :community}`.  It
-is defined as:
-```clojure
-    :community {:binding {:indent 0},
-                :fn-map {"apply" :none,
-                         "assoc" :none,
-                         "filter" :none,
-                         "filterv" :none,
-                         "map" :none,
-                         "mapv" :none,
-                         "reduce" :none,
-                         "remove" :none,
-                         "with-meta" :none-body},
-                :list {:indent-arg 1},
-                :map {:indent 0},
-                :pair {:indent 0}},
-```
-In this definition you can see where `:indent-arg` is given the value of
-1.
-
-
-
-
-
-
+You can place an options map which contains `{:list {:indent n}}` or 
+`{:list {:indent-arg n}}`
+[anywhere an options map is accepted]
+(../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
 
 
