@@ -26,10 +26,10 @@ In addition, zprint is very handy [to use at the REPL](./types/repl.md).
 
 ## Get zprint:
 
-  * [for macOS](./getting/macos.md) _starts in <50 ms_
-  * [for Linux](./getting/linux.md) _starts in <50 ms_
-  * [as an uberjar for any Java enabled platform](./getting/uberjar.md) _starts in several seconds_
-  * [as an accelerated uberjar for any Java enabled platform](./getting/appcds.md) _starts in about 1s_
+  * [for macOS](./getting/macos.md)    _starts in <50 ms_
+  * [for Linux](./getting/linux.md)    _starts in <50 ms_
+  * [as an uberjar for any Java enabled platform](./getting/uberjar.md)    _starts in several seconds_
+  * [as an accelerated uberjar for any Java enabled platform](./getting/appcds.md)    _starts in about 1s_
 
 ## Alter zprints formatting behavior:
 
