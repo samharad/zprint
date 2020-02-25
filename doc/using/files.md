@@ -44,7 +44,19 @@ lein zprint '{:width 90}' src/myproj/*.clj
 Processing file: src/myproj/myfile.clj
 Processing file: src/myproj/myotherfile.clj
 ```
-Get it: `[lein-zprint "0.5.4"]`
+Get it: put `[lein-zprint "0.5.4"]` in the vector that is the value of
+the `:plugins` key in `project.clj`:
+
+```
+(defproject zpuse "0.1.0-SNAPSHOT"
+  :description "FIXME: write description"
+  :url "http://example.com/FIXME"
+  :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
+            :url "https://www.eclipse.org/legal/epl-2.0/"}
+  :plugins [[lein-zprint "0.5.4"]]
+  :dependencies [[org.clojure/clojure "1.10.0"]]
+  :repl-options {:init-ns zpuse.core})
+```
 
 ## 4. Other approaches
 Prior the prebuilt, high performance binaries (see above), a number of

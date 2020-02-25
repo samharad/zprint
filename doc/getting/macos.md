@@ -4,7 +4,7 @@ and starts up in <50ms.
 
 ## 1. Go to the latest release for zprint
 You can find the latest release [here](https://github.com/kkinnear/zprint/releases/latest).
-## 2. Download zprintm
+## 2. Download zprintm from the above directory
 The macOS pre-built binary is named `zprintm-0.x.y`, where `x.y` varies.
 Click on this to download it.
 ## 3. Name zprint whatever you want
