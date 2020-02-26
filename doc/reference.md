@@ -907,7 +907,7 @@ In cases where zprint needs to cache some value, the following keys indicate
 a directory where all cached data will reside:
 
 ##### :location <text style="color:#A4A4A4;"><small>"HOME"</small></text>
-##### :location _  "HOME"_
+##### :location ######"HOME"
 
 If this does not appear, the location is the home directory ".".  If this
 does appear, it must be a string and it will either be considered an
