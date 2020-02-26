@@ -5,9 +5,10 @@ of pretty printing capabilities for both Clojure code and Clojure/EDN
 structures.  It can meet almost anyone's needs.  As such, it supports
 the following major source code formattng approaches:
 
-  * [__classic zprint__](./doc/types/classic.md) -- ignores whitespace in function definitions and 
-  formats code with a variety of heuristics to look as good as 
-  hand-formatted code
+  * [__classic zprint__](./doc/types/classic.md) -- ignores whitespace 
+  in function definitions and formats code with a variety of heuristics 
+  to look as good as hand-formatted code 
+  ([see examples](./doc/types/classic.md))
   * [__respect blank lines__](./doc/types/respectbl.md) -- similar to classic zprint, but blank lines 
   inside of function defintions are retained, while code is otherwise 
   formatted to look beautiful
@@ -15,7 +16,7 @@ the following major source code formattng approaches:
   changes lines, it is only correctly indented on whatever line it was already
   on
 
-In addition, zprint is very handy [to use at the REPL](./types/repl.md).
+In addition, zprint is very handy [__to use at the REPL__](./types/repl.md).
 
 ## You can use zprint in many ways:
 
