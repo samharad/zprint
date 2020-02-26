@@ -8,13 +8,15 @@ the following major source code formattng approaches:
   * [__classic zprint__](./doc/types/classic.md) -- ignores whitespace 
   in function definitions and formats code with a variety of heuristics 
   to look as good as hand-formatted code 
-  ([see examples](./doc/types/classic.md))
-  * [__respect blank lines__](./doc/types/respectbl.md) -- similar to classic zprint, but blank lines 
-  inside of function defintions are retained, while code is otherwise 
-  formatted to look beautiful
-  * [__indent only__](./doc/types/indentonly.md) -- very different from classic zprint -- no code ever
-  changes lines, it is only correctly indented on whatever line it was already
-  on
+  ([_see examples_](./doc/types/classic.md))
+  * [__respect blank lines__](./doc/types/respectbl.md) -- similar to 
+  classic zprint, but blank lines inside of function defintions are retained, 
+  while code is otherwise formatted to look beautiful
+  ([_see examples_](./doc/types/respectbl.md))
+  * [__indent only__](./doc/types/indentonly.md) -- very different from 
+  classic zprint -- no code ever changes lines, it is only correctly 
+  indented on whatever line it was already on
+  ([_see examples_](./doc/types/indentonly.md))
 
 In addition, zprint is very handy [__to use at the REPL__](./types/repl.md).
 
@@ -27,10 +29,10 @@ In addition, zprint is very handy [__to use at the REPL__](./types/repl.md).
 
 ## Get zprint:
 
-  * [for macOS](./doc/getting/macos.md)    _starts in <50 ms_
-  * [for Linux](./doc/getting/linux.md)    _starts in <50 ms_
-  * [as an uberjar for any Java enabled platform](./doc/getting/uberjar.md)    _starts in several seconds_
-  * [as an accelerated uberjar for any Java enabled platform](./doc/getting/appcds.md)    _starts in about 1s_
+  * [for macOS](./doc/getting/macos.md)    _  starts in <50 ms_
+  * [for Linux](./doc/getting/linux.md)    _  starts in <50 ms_
+  * [as an uberjar for any Java enabled platform](./doc/getting/uberjar.md)    _  starts in several seconds_
+  * [as an accelerated uberjar for any Java enabled platform](./doc/getting/appcds.md)    _  starts in about 1s_
 
 ## Alter zprints formatting behavior:
 

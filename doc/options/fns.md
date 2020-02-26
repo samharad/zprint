@@ -55,8 +55,7 @@ Then you would use an options map:
 {:fn-map {"myfn" :arg1}}
 ```
 This options map can appear
-[anywhere an options map is accepted]
-(../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
+[anywhere an options map is accepted](../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
 It could be associated with this project,
 in a project oriented `./zprintrc` file, or it could be associated
 with this person by appearing in their `~/.zprintrc` file.  It could

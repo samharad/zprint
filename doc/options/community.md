@@ -72,8 +72,7 @@ everything that is not explicitly classified as a body function).
 ## How to get community endorsed formatting?
 
 You can place the options map `{:style :community}` 
-[anywhere an options map is accepted]
-(../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
+[anywhere an options map is accepted](../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
 
 
 

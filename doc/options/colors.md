@@ -59,5 +59,4 @@ as well.
 
 If you wish to change the colors permanently, you can place these 
 options maps
-[anywhere an options map is accepted]
-(../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
+[anywhere an options map is accepted](../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).

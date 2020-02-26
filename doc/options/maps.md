@@ -146,5 +146,4 @@ You can place these option maps on individual calls.  If you
 are operating at the REPL, using `set-options!` is frequently a good way
 to set up useful formatting.  For more enduring changes,
 this options map can appear
-[anywhere an options map is accepted]
-(../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
+[anywhere an options map is accepted](../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).

@@ -88,7 +88,6 @@ There is a full discussion of this in [community standards](./community.md).
 
 You can place an options map which contains `{:list {:indent n}}` or 
 `{:list {:indent-arg n}}`
-[anywhere an options map is accepted]
-(../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
+[anywhere an options map is accepted](../altering.md#2-get-the-options-map-recognized-by-zprint-when-formatting).
 
 
