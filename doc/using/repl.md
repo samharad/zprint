@@ -4,11 +4,11 @@ zprint was designed to be very helpful at the REPL.  What do you have to do?
 First, you have to make sure zprint shows up in your dependencies.
 #### Leiningen (project.clj)
 Put:
-```
+```clojure
 	[zprint "0.5.4"]
 ```
 in the dependencies.  For example:
-```
+```clojure
 (defproject zpuse "0.1.0-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
@@ -19,18 +19,18 @@ in the dependencies.  For example:
   :repl-options {:init-ns zpuse.core})
 ```
 #### deps.edn
-```
+```clojure
 {:deps {org.clojure/clojure #:mvn{:version "1.9.0"},
         zprint #:mvn{:version "0.5.4"}}}
 ```
 ## 2. Require zprint when you run the REPL
 You need to get it availble to you when you run the REPL.
-```
+```clojure
 zpuse.core=> (require '[zprint.core :as zp])
 ```
 ## 3. Use zprint
 ### Format a structure
-```
+```clojure
 zpuse.core=> (def example {:this :is :a :test :it :is :only :a :test :foo :bar :baz :but :better :if :it :does :not :fit :on :one :line})
 #'zpuse.core/example
 zpuse.core=> example
@@ -52,7 +52,7 @@ zpuse.core=>
 ```
 ### Configure zprint
 Let's say that you don't want commas in maps.
-```
+```clojure
 zpuse.core=> (zp/set-options! {:map {:commas? false}})
 Execution error at zprint.config/internal-set-options! (config.cljc:928).
 set-options! for repl or api call 2 found these errors: In repl or api call 2, In the key-sequence [:map :commas?] the key :commas? was not recognized as valid!
@@ -80,7 +80,7 @@ zpuse.core=>
 ### Show source for a function
 Note the specs (if any) are included in the doc-string for the function.
 Formatted, of course!
-```
+```clojure
 zpuse.core=> (zp/czprint-fn defn)
 (def
   ^{:doc
@@ -148,7 +148,7 @@ zpuse.core=>
 ```
 ### Help!
 You can get the entire API by asking for help:
-```
+```clojure
 zpuse.core=> (zp/czprint nil :help)
 zprint-0.5.4
 
@@ -158,7 +158,7 @@ zprint-0.5.4
 
  All zprint functions also allow the following arguments:
 
-   (zprint x < width >)
+   (zprint x \<width\>)
    (zprint x < width > < options >)
    (zprint x < options >)
 
