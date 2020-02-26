@@ -29,11 +29,11 @@ In addition, zprint is very handy [__to use at the REPL__](./types/repl.md).
 
 ## Get zprint:
 
-  * [as a standalone binary for macOS](./doc/getting/macos.md)    _starts in <50 ms_
-  * [as a standalone binary for Linux](./doc/getting/linux.md)    _starts in <50 ms_
-  * [as an uberjar for any Java enabled platform](./doc/getting/uberjar.md)    _starts in several seconds_
-  * [as an accelerated uberjar for any Java enabled platform](./doc/getting/appcds.md)    _starts in about 1s_
-  * [as a library to use at the REPL](./doc/using/repl.md)
+  * [a standalone binary for macOS](./doc/getting/macos.md)    _starts in <50 ms_
+  * [a standalone binary for Linux](./doc/getting/linux.md)    _starts in <50 ms_
+  * [an uberjar for any Java enabled platform](./doc/getting/uberjar.md)    _starts in several seconds_
+  * [an accelerated uberjar for any Java enabled platform](./doc/getting/appcds.md)    _starts in about 1s_
+  * [a library to use at the REPL](./doc/using/repl.md)
 
 ## Alter zprints formatting behavior:
 
