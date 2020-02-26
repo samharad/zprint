@@ -2,7 +2,7 @@
 zprint was designed to be very helpful at the REPL.  What do you have to do?
 ## 1. Get zprint into the dependencies
 First, you have to make sure zprint shows up in your dependencies.
-#### Leiningen (project.clj)
+### Leiningen (project.clj)
 Put:
 ```clojure
 	[zprint "0.5.4"]
@@ -18,7 +18,7 @@ in the dependencies.  For example:
                  [zprint "0.5.4"]]
   :repl-options {:init-ns zpuse.core})
 ```
-#### deps.edn
+### deps.edn
 ```clojure
 {:deps {org.clojure/clojure #:mvn{:version "1.9.0"},
         zprint #:mvn{:version "0.5.4"}}}
@@ -158,7 +158,7 @@ zprint-0.5.4
 
  All zprint functions also allow the following arguments:
 
-   (zprint x \<width\>)
+   (zprint x < width >)
    (zprint x < width > < options >)
    (zprint x < options >)
 
@@ -210,8 +210,4 @@ zpuse.core=>
 ## Many more examples...
 You can find lots of useful ways to use zprint at the REPL 
 [here](../types/repl.md).
-
-For [vectors](../types/repl.md#vectors)
-
-
 
