@@ -74,33 +74,6 @@ zprint has been tested in each of the following environments:
 It requires `tools.reader` at least 1.0.5, which all of the environments
 above contain.
 
-### Clojure CLI
-
-Add the following to the `:aliases` section of `$HOME/.clojure/deps.edn`
-file or to a project's `deps.edn`.
-
-For example:
-
-```clojure
-$ cat > deps.edn <<< $'
-{:aliases {:zprint {:extra-deps
-                      {org.clojure/clojure
-                         #:mvn{:version "1.9.0"},
-                       zprint #:mvn{:version
-                                      "0.5.4"}},
-                    :main-opts ["-m" "zprint.main"]}},
- :deps {org.clojure/clojure #:mvn{:version "1.9.0"},
-        zprint #:mvn{:version "0.5.4"}}}'
-$ clj -A:zprint < deps.edn
-$ clj -m zprint.main <deps.edn
-```
-
-Then you can use the following as filter and pretty printer:
-
-```shell
-cat /path/to/file.clj | clojure -A:zprint
-```
-
 ### Clojure 1.8:
 
 The last zprint release built with Clojure 1.8 was [zprint "0.4.15"].
@@ -114,6 +87,6 @@ include the following library when using Clojure 1.8:
 
 ## License
 
-Copyright © 2016-2019 Kim Kinnear
+Copyright © 2016-2020 Kim Kinnear
 
 Distributed under the MIT License.  See the file LICENSE for details.

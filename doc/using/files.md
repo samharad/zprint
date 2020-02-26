@@ -11,7 +11,7 @@ There are several ways to use zprint to format entire source files:
 ```
 zprintm '{:width 90}` < myfile.clj > myfile.out.clj
 ```
-__Get it for__:  
+__Get prebuilt binaries for__:  
   * [macOS](../getting/macos.md)
   * [Linux](../getting/linux.md)
 
@@ -32,7 +32,38 @@ __Get the__:
   * [uberjar](../getting/uberjar.md)
   * [accelerated uberjar](../getting/appcds.md)
 
-## 3. Lein zprint
+## 3. Clojure CLI
+
+Add the following to the `:aliases` section of `$HOME/.clojure/deps.edn`
+file or to a project's `deps.edn`.
+
+For example:
+
+```shell
+$ cat > deps.edn <<< $'
+{:aliases {:zprint {:extra-deps
+                      {org.clojure/clojure
+                         #:mvn{:version "1.9.0"},
+                       zprint #:mvn{:version
+                                      "0.5.4"}},
+                    :main-opts ["-m" "zprint.main"]}},
+ :deps {org.clojure/clojure #:mvn{:version "1.9.0"},
+        zprint #:mvn{:version "0.5.4"}}}'
+$ clj -A:zprint < deps.edn
+$ clj -m zprint.main <deps.edn
+```
+
+Then you can use the following as filter and pretty printer:
+
+```shell
+cat /path/to/file.clj | clojure -A:zprint
+```
+
+Note: If you are going to be doing this a lot (and can't use the prebuilt
+binaries -- #1, above) the [accelerated uberjar](../getting/appcds.md) will 
+startup much faster and run as fast once it has started.
+
+## 4. Lein zprint
   * Leiningen plugin: `[lein-zprint "0.5.n"]`
   * Accepts configuration from `:zprint` key in project.clj
   * Will (optionally) replace existing source files with reformatted versions
