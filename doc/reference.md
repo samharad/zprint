@@ -1113,7 +1113,7 @@ Just like :arg2, but prints the third through last arguments as functions.
     (foo [bar] baz))
 ```
 
-#### :binding
+#### :binding _(function type)_
 
 The function has a binding clause as its first argument.
 Print the binding clause two-up (as pairs)  The indent for any wrapped
@@ -2443,7 +2443,7 @@ zprint.core=> (czprint cd 75 {:parse-string? true :comment {:count? true}})
   (list a :b :c "d"))
 ```
 _____
-## :extend
+## :extend key
 
 When formatting functions which have extend in their function types.
 
