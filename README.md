@@ -67,9 +67,9 @@ In addition, zprint is very handy [__to use at the REPL__](./types/repl.md).
 * [Widely Used Configuration Parameters](./doc/reference.md#widely-used-configuration-parameters)
 * [:agent, :atom, :delay, :fn, :future, :promise](./doc/reference.md#agent-atom-delay-fn-future-promise)
 * [:array](./doc/reference.md#array)
-* [:binding](./doc/reference.md#binding)
-* :comment
-## :extend
+* [:binding](./doc/reference.md#binding-key)
+* [:comment](./doc/reference.md#comment)
+* [:extend](./doc/reference.md#extend-key)
 ## :list
 ## :map
 ## :object

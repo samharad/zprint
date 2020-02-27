@@ -403,74 +403,6 @@ of a list are on the same line and the third element of the
 list was left-aligned with the second element of the list.  Obviously this
 regime doesn't enforce anything other than indentation.
 
-
-### Support
-
-If you have a problem, file an issue with an example of what doesn't
-work, and please also include the output from this call:
-
-```clojure
-(require '[zprint.core :as zp])
-
-(zp/zprint nil :support)
-```
-
-This will assist me a great deal in reproducing and working on the issue.  Thanks!
-
-### Contributors
-
-A number of folks have contributed to zprint, not all of whom
-show up on GitHub because I have integrated the code or suggestions manually.
-
-  * `:option-fn` and `:fn-format` for enhanced vector formatting: @milankinen
-  * Fixed missing require in `spec.cljc`: @Quezion
-  * Corrected readme: @griffis
-  * Fixed nested reader conditional: @rgould1
-  * Clarified and added useful example for clj usage: @bherrmann7
-  * Suggested fix for international chars and graalVM native image: @huahaiy
-
-Thanks to everyone who has contributed fixes as well as everyone who has
-reported an issue.  I really appreciate all of the help making zprint better
-for everybody!
-
-### Acknowledgements
-
-At the core of `zprint` is the `rewrite-clj` library by Yannick
-Scherer, which will parse Clojure source into a zipper.  This is a
-great library!  I would not have attempted `zprint` if `rewrite-clj`
-didn't exist to build upon.  The Clojurescript port relies on Magnus
-Rundberget's port of `rewrite-clj` to Clojurescript, `rewrite-cljs`.
-It too worked with no issues when porting to Clojurescript!
-
-### Another pretty printer
-
-Aren't there enough pretty printers already?  What about:
-
-* [clojure.pprint](https://clojure.github.io/clojure/clojure.pprint-api.html) which
-is built into Clojure, and does both s-expressions as well as code.
-This features a port of the redoubtable Common Lisp formatter.
-
-* [fipp](https://github.com/brandonbloom/fipp) "Fast Idiomatic Pretty Printer" and
-[puget](https://github.com/greglook/puget), a useful
-library that adds significant capability to fipp.
-Fipp features a very cool formatting engine, and puget adds some
-great features on top of fipp (in particular color and sorted keys
-in maps).
-
-* [cljfmt](https://github.com/weavejester/cljfmt) Which will pretty print your source files for you.
-Cljfmt is truly beautiful code, crazy short and very neat inside.
-
-These are all great packages, they have been around for a while,
-and are quite useful.  Moreover, they each have some really high-tech
-elements as I mentioned above.
-
-I've been using these packages for years, and have even hacked both
-clojure.pprint and fipp/puget to print things in a way a bit more
-to my liking.  That said, there were a number of things that I
-wanted a pretty printing package to do that none of these presently
-do or that I could modify them to do in a straightforward
-manner.
-
 # Configuration
 
 ## Quick Start
@@ -2335,7 +2267,7 @@ A simple example:
 Should it wrap its contents, or just list each on a separate line
 if they don't all fit on one line.?
 _____
-## :binding
+## :binding key
 
 Controls the formatting of the first argument of
 any function which has `:binding` as its function type.  `let` is, of
@@ -4371,8 +4303,3 @@ As an additional test of the uberjar (all in the root directory):
   
 If tests pass, the script will return with no output.
 
-## License
-
-Copyright © 2016-2019 Kim Kinnear
-
-Distributed under the MIT License.  See the file LICENSE for details.
