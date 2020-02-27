@@ -3,7 +3,9 @@
 __zprint__ is a library and command line tool providing a variety
 of pretty printing capabilities for both Clojure code and Clojure/EDN
 structures.  It can meet almost anyone's needs.  As such, it supports
-the following major source code formattng approaches:
+the a number of major source code formattng approaches.
+
+## See zprint:
 
   * [__classic zprint__](./doc/types/classic.md) -- ignores whitespace 
   in function definitions and formats code with a variety of heuristics 
@@ -20,7 +22,7 @@ the following major source code formattng approaches:
 
 In addition, zprint is very handy [__to use at the REPL__](./types/repl.md).
 
-## You can use zprint in many ways:
+## Use zprint:
 
   * [to format whole files](./doc/using/files.md)
   * [while using an editor](./doc/using/editor.md)
@@ -50,6 +52,38 @@ In addition, zprint is very handy [__to use at the REPL__](./types/repl.md).
   * [how the second element of a pair is indented](./doc/options/pairs.md)
   * [how comments are handled](./doc/options/comments.md)
   * [anything else...](./doc/reference.md)
+
+## Reference
+
+  * The zprint [API]/(./doc/reference.md#api).
+  * 
+
+
+* [Introduction to Configuration](./doc/reference.md#introduction-to-configuration)
+* [Overview](./doc/reference.md#overview)
+* [How to Configure zprint](./doc/reference.md#how-to-configure-zprint)
+* [Configuration Interface](./doc/reference.md#configuration-intereface)
+* [What is Configurable](./doc/reference.md#what-is-configurable)
+* [Widely Used Configuration Parameters](./doc/reference.md#widely-used-configuration-parameters)
+* [:agent, :atom, :delay, :fn, :future, :promise](./doc/reference.md#:agent-:atom-:delay-:fn-:future-:promise)
+* [:array](./doc/reference.md#:array)
+* [:binding](./doc/reference.md#:binding)
+* :comment
+## :extend
+## :list
+## :map
+## :object
+## :output
+## :pair
+## :pair-fn
+## :reader-cond
+## :record
+## :set
+## :spec
+## :style and :style-map
+## :tab
+## :vector
+## Debugging the configuration
 
 
 ## Usage
@@ -84,6 +118,31 @@ include the following library when using Clojure 1.8:
 ```
 [clojure-future-spec "1.9.0-alpha17"]
 ```
+### Contributors
+
+A number of folks have contributed to zprint, not all of whom
+show up on GitHub because I have integrated the code or suggestions manually.
+
+  * `:option-fn` and `:fn-format` for enhanced vector formatting: @milankinen
+  * Fixed missing require in `spec.cljc`: @Quezion
+  * Corrected readme: @griffis
+  * Fixed nested reader conditional: @rgould1
+  * Clarified and added useful example for clj usage: @bherrmann7
+  * Suggested fix for international chars and graalVM native image: @huahaiy
+
+Thanks to everyone who has contributed fixes as well as everyone who has
+reported an issue.  I really appreciate all of the help making zprint better
+for everybody!
+
+### Acknowledgements
+
+At the core of `zprint` is the `rewrite-clj` library by Yannick
+Scherer, which will parse Clojure source into a zipper.  This is a
+great library!  I would not have attempted `zprint` if `rewrite-clj`
+didn't exist to build upon.  The Clojurescript port relies on Magnus
+Rundberget's port of `rewrite-clj` to Clojurescript, `rewrite-cljs`.
+It too worked with no issues when porting to Clojurescript!
+
 
 ## License
 

@@ -29,8 +29,8 @@ Uberjar example:
 java -jar zprint-filter '{:width 90}' < myfile.clj > myfile.out.clj
 ```
 __Get the__: 
-  * [uberjar](../getting/uberjar.md)
-  * [accelerated uberjar](../getting/appcds.md)
+  * [uberjar](../getting/uberjar.md) _starts in several seconds_
+  * [accelerated uberjar](../getting/appcds.md) _starts in about 1s_
 
 ## 3. Clojure CLI
 
@@ -59,8 +59,9 @@ Then you can use the following as filter and pretty printer:
 cat /path/to/file.clj | clojure -A:zprint
 ```
 
-Note: If you are going to be doing this a lot (and can't use the prebuilt
-binaries -- #1, above) the [accelerated uberjar](../getting/appcds.md) will 
+__Note__: If you are going to be doing this a lot (and can't use the 
+the high performance prebuilt binaries -- #1, above) the 
+[accelerated uberjar](../getting/appcds.md) will 
 startup much faster and run as fast once it has started.
 
 ## 4. Lein zprint
@@ -80,7 +81,7 @@ Processing file: src/myproj/myotherfile.clj
 __Get it__: put `[lein-zprint "0.5.4"]` in the vector that is the value of
 the `:plugins` key in `project.clj`:
 
-```
+```clojure
 (defproject zpuse "0.1.0-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
