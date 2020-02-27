@@ -62,12 +62,12 @@ In addition, zprint is very handy [__to use at the REPL__](./types/repl.md).
 * [Introduction to Configuration](./doc/reference.md#introduction-to-configuration)
 * [Overview](./doc/reference.md#overview)
 * [How to Configure zprint](./doc/reference.md#how-to-configure-zprint)
-* [Configuration Interface](./doc/reference.md#configuration-intereface)
+* [Configuration Interface](./doc/reference.md#configuration-interface)
 * [What is Configurable](./doc/reference.md#what-is-configurable)
 * [Widely Used Configuration Parameters](./doc/reference.md#widely-used-configuration-parameters)
-* [:agent, :atom, :delay, :fn, :future, :promise](./doc/reference.md#:agent-:atom-:delay-:fn-:future-:promise)
-* [:array](./doc/reference.md#:array)
-* [:binding](./doc/reference.md#:binding)
+* [:agent, :atom, :delay, :fn, :future, :promise](./doc/reference.md#agent-atom-delay-fn-future-promise)
+* [:array](./doc/reference.md#array)
+* [:binding](./doc/reference.md#binding)
 * :comment
 ## :extend
 ## :list
