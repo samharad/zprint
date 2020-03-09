@@ -145,7 +145,7 @@ include the following library when using Clojure 1.8:
 	  * [    A note on justifying two-up printing](./doc/reference.md#a-note-on-justifying-two-up-printing)
     * [ Formatting large or deep collections](./doc/reference.md#formatting-large-or-deep-collections)
     * [ Widely Used Configuration Parameters](./doc/reference.md#widely-used-configuration-parameters)
-    * [ Configurable Elements](./doc/reference.md#configurable-elements)
+    * [ __Configurable Elements__](./doc/reference.md#configurable-elements)
       * [:agent](./doc/reference.md#agent-atom-delay-fn-future-promise)
       * [:array](./doc/reference.md#array)
       * [:atom](./doc/reference.md#agent-atom-delay-fn-future-promise)

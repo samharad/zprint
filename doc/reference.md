@@ -639,7 +639,6 @@ know that you are using it by opening an issue.
 In cases where zprint needs to cache some value, the following keys indicate
 a directory where all cached data will reside:
 
-##### :location <text style="color:#A4A4A4;"><small>"HOME"</small></text>
 ##### :location _"HOME"_
 
 If this does not appear, the location is the home directory ".".  If this
@@ -649,7 +648,7 @@ a ".", it will be considered a Java system property and will be looked
 resolved in that fashion, and if it does not contain a ".", it will be 
 considered an environment variable and resolved in that fashion.
 
-##### :directory <text style="color:#A4A4A4;"><small>".zprint"</small></text>
+##### :directory _".zprint"_
 
 This is the directory in which the various aspects of the cache will
 reside.  This directory is used or created in the :location (see immediately
@@ -663,11 +662,11 @@ maps used for configuration.  These lookups are triggered by the `--url`
 or `--url-only` switches on the uberjar and graalvm binaries.  There are
 two values associated with cacheing of URL lookups.
 
-##### :cache-secs <text style="color:#A4A4A4;"><small>300</small></text>
+##### :cache-secs _300_
 
 This the time that for which the result of a URL lookup is cached.  
 
-##### :cache-dir <text style="color:#A4A4A4;"><small>"urlcache"</small></text>
+##### :cache-dir _"urlcache"_
 
 This the name of the directory in which the cached URL results are held.  This
 directory is itself located in the [:cache :directory] value described
@@ -1328,18 +1327,18 @@ one line, and zprint will do this for some functions by default.
 There are three sets which control which function styles will never
 print on one line even if they would otherwise fit:
 
-#### :fn-force-nl <text style="color:#A4A4A4;"><small>#{:force-nl :force-nl-body :noarg1 :noarg1-body :arg1-force-nl :flow :flow-body}</small></text>
+#### :fn-force-nl _#{:force-nl :force-nl-body :noarg1 :noarg1-body :arg1-force-nl :flow :flow-body}_
 
 This is a set that specifies which function types will always format with
 a hang or a flow, and never be printed on the same line even if they fit.
 
-#### :fn-gt2-force-nl <text style="color:#A4A4A4;"><small>#{:gt2-force-nl :binding}</small></text>
+#### :fn-gt2-force-nl _#{:gt2-force-nl :binding}_
 
 This is a set that specifies which function types will always format with
 a hang or a flow, and never be printed on the same line if they have more
 than 2 arguments.
 
-#### :fn-gt3-force-nl <text style="color:#A4A4A4;"><small>#{:gt3-force-nl :arg1-pair :arg1-pair-body}</small></text>
+#### :fn-gt3-force-nl _#{:gt3-force-nl :arg1-pair :arg1-pair-body}_
 
 This is a set that specifies which function types will always format with
 a hang or a flow, and never be printed on the same line if they have more
@@ -1545,7 +1544,7 @@ capabilities, but they are now fully supported.
 
 There are two limits that can be helpful.
 
-#### :max-length <text style="color:#A4A4A4;"><small>1000</small></text>
+#### :max-length _1000_
 
 Will limit the length of a sequence on output -- more than this many
 will yield a `...`.
@@ -1659,7 +1658,7 @@ instance, if you want an overview of a `deftype`, you could use
     (equiv [this other] ...))
 ```
 
-#### :max-depth <text style="color:#A4A4A4;"><small>1000</small></text>
+#### :max-depth _1000_
 
 Will limit depth of a collection.
 
@@ -2026,7 +2025,7 @@ ______
 All of these elements are formatted in a readable manner by default,
 which shows their current value and minimizes extra information.
 
-#### :object? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :object? _false_
 
 All of these elements can be formatted more as Clojure represents
 Java objects by setting `:object?` to true.
@@ -2036,12 +2035,12 @@ _____
 
 Arrays are formatted by default with the values of their elements.
 
-#### :hex? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :hex? _false_
 
 If the elements are numeric, format them in hex. Useful if you are
 doing networking.  See below for an example.
 
-#### :object? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :object? _false_
 
 Don't print the elements of the array, just print it as an
 object.
@@ -2072,7 +2071,7 @@ A simple example:
 #object["[B" "0x31ef8e0b" "[B@31ef8e0b"]
 ```
 
-#### :wrap? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :wrap? _true_
 
 Should it wrap its contents, or just list each on a separate line
 if they don't all fit on one line.?
@@ -2083,12 +2082,12 @@ Controls the formatting of the first argument of
 any function which has `:binding` as its function type.  `let` is, of
 course, the canonical example.
 
-##### :indent <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :hang-expand <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang-diff <text style="color:#A4A4A4;"><small>1</small></text>
-##### :justify? <text style="color:#A4A4A4;"><small>false</small></text>
-#### :force-nl?  <text style="color:#A4A4A4;"><small>true</small></text>
+##### :indent _2_
+##### :hang? _true_
+##### :hang-expand _2_
+##### :hang-diff _1_
+##### :justify? _false_
+#### :force-nl?  _true_
 
 If you never want to see multiple binding pairs on the same line,
 like this:
@@ -2114,8 +2113,8 @@ You can configure `:binding` to have `:force-nl? true`, which will yield this:
   (list a f))
 ```
 
-#### :flow? <text style="color:#A4A4A4;"><small>false</small></text>
-#### :nl-separator? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :flow? _false_
+#### :nl-separator? _false_
 
 Both `:flow?` and `:nl-separator?` together with `:indent` can significantly
 alter the way binding pairs are printed:
@@ -2178,13 +2177,13 @@ into account when formatting.  In addition, comments can be
 word-wrapped if they don't fit the width, or not.  These are
 indpendent capabilities.
 
-#### :wrap? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :wrap? _true_
 
 Wrap a comment if it doesn't fit within the width.  Works hard to preserve
 the initial part of the line and word wraps the end.  Does not pull
 subsequent lines up on to a wrapped line.
 
-#### :inline? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :inline? _true_
 
 If the a comment is on the same line as some code, keep the comment
 on that same line.  The distance from the code is preserved only
@@ -2192,7 +2191,7 @@ when `:inline-align-style :none` is used.  See `:inline-align-style`
 for details.  If the comment extends beyond the width, it will be
 wrapped just like a comment which is on its own line.
 
-#### :inline-align-style <text style="color:#A4A4A4;"><small>:aligned</small></text>
+#### :inline-align-style _:aligned_
 
 There are three possible ways that inline comments can be aligned:
 
@@ -2206,7 +2205,7 @@ There are three possible ways that inline comments can be aligned:
   * `:consecutive` -- Any inline comments which appear on consecutive lines
     in the output (not the input) will be aligned.
 
-#### :count? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :count? _false_
 
 Count the length of the comment when ensuring that things fit within the
 width. Doesn't play well with inline comments.  With any kinds of comments,
@@ -2257,18 +2256,18 @@ _____
 
 When formatting functions which have extend in their function types.
 
-##### :indent <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang? <text style="color:#A4A4A4;"><small>true</small></text>
-#### :force-nl?  <text style="color:#A4A4A4;"><small>true</small></text>
+##### :indent _2_
+##### :hang? _true_
+#### :force-nl?  _true_
 
 Forces a new line between one type/fn defn set and the next in the extend.
 
-#### :nl-separator? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :nl-separator? _false_
 
 Places a blank line between one type/fn defn set and the next if the
 fn defn set formats with a flow.
 
-#### :flow? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :flow? _false_
 
 Places a new line between the type and the fn defns in a single
 type/fn defn set in the extend.
@@ -2329,7 +2328,7 @@ ways to format extend:
   (meta [_] _meta))
 
 ```
-#### :modifiers <text style="color:#A4A4A4;"><small>#{"static"}</small></text>
+#### :modifiers _#{"static"}_
 
 Contains a set of elements that will be placed on the same line as the
 protocol-or-interface-or-Object.  Created largely to support `defui` in
@@ -2345,13 +2344,13 @@ Lists show up in lots of places, but mostly they are code.  So
 in addition to the various function types described above, the `:list`
 configuration affects the look of formatted code.
 
-##### :indent <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :hang-avoid <text style="color:#A4A4A4;"><small>0.5</small></text>
-##### :hang-expand <text style="color:#A4A4A4;"><small>2.0</small></text>
-##### :hang-diff <text style="color:#A4A4A4;"><small>1</small></text>
+##### :indent _2_
+##### :hang? _true_
+##### :hang-avoid _0.5_
+##### :hang-expand _2.0_
+##### :hang-diff _1_
 
-#### :indent-arg <text style="color:#A4A4A4;"><small>nil</small></text>
+#### :indent-arg _nil_
 
 The amount to indent the arguments of a function whose arguments do
 not contain "body" forms.
@@ -2362,7 +2361,7 @@ are not "body" functions.  You would configure this value only if
 you wanted "arg" type functions to have a different indent from
 "body" type functions.  It is configured by `:style :community`.
 
-#### :indent-only? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :indent-only? _false_
 
 Do not add or remove newlines.  Just indent the lines that are there and
 regularize whitespace.  The `:fn-map` which gives formatting and indentation
@@ -2370,7 +2369,7 @@ information about different functions is ignored.  The default indentation is
 flow, however based on the value of the `:indent-only-style`, a hang will
 be used in some situations.  See `:indent-only-style` below for details.
 
-#### :indent-only-style <text style="color:#A4A4A4;"><small>:input-hang</small></text>
+#### :indent-only-style _:input-hang_
 
 Controls how `:indent-only` indents a list. If the value is
 `:input-hang`, then if the input is formatted as a hang, it will
@@ -2380,7 +2379,7 @@ line, and the third element of the list is on the second line aligned
 with the second element.  The determination of alignment is not
 affected by the appearance of comments.
 
-#### :hang-size <text style="color:#A4A4A4;"><small>100</small></text>
+#### :hang-size _100_
 
 The maximum number of lines that are allowed in a hang.  If the number
 of lines in the hang is greater than the `:hang-size`, it will not do
@@ -2388,7 +2387,7 @@ the hang but instead will format this as a flow.  Together with
 `:hang-expand` this will keep hangs from getting too long so that
 code (typically) doesn't get very distorted.
 
-#### :constant-pair? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :constant-pair? _true_
 
 Lists (which are frequently code) support something called _**constant
 pairing**_.  This capability looks at the end of a list, and if the
@@ -2460,7 +2459,7 @@ Note that the formatting of the pairs in a constant pair is controlled
 by the `:pair` configuration (just like the pairs in a `cond`, `assoc`,
 and any function style with "pair" in the name).
 
-#### :constant-pair-min <text style="color:#A4A4A4;"><small>4</small></text>
+#### :constant-pair-min _4_
 
 An integer specifying the minimum number of required elements capable of being
 constant paired before constant pairing is used.  Note that constant
@@ -2504,7 +2503,7 @@ Using our previous example again:
                #(< (:ret %) (-> % :args :end))))
 ```
 
-#### :return-altered-zipper <text style="color:#A4A4A4;"><small>nil</small></text>
+#### :return-altered-zipper _nil_
 
 __EXPERIMENTAL__
 
@@ -2551,13 +2550,13 @@ Maps support both the __indent__ and __hang__ values, above.  The default
 `:hang-expand` value is `1000.0` because maps  don't look bad with a large
 hangs.
 
-##### :indent <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :hang-expand <text style="color:#A4A4A4;"><small>1000.0</small></text>
-##### :hang-diff <text style="color:#A4A4A4;"><small>1</small></text>
-##### :justify? <text style="color:#A4A4A4;"><small>false</small></text>
+##### :indent _2_
+##### :hang? _true_
+##### :hang-expand _1000.0_
+##### :hang-diff _1_
+##### :justify? _false_
 
-#### :flow? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :flow? _false_
 
 Never print the key and value of a single key/value pair on the same
 line.
@@ -2574,7 +2573,7 @@ line.
  :ghi
    :ijk}
 ```
-#### :nl-separator? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :nl-separator? _false_
 
 Put an entirely blank line between any key/value pair where the value
 part of the pair formats as a flow.
@@ -2670,12 +2669,12 @@ the key/value pair formats with the value as a flow.
  :o {:p {:q :r, :s :t}}}
 ```
 
-####  :comma?  <text style="color:#A4A4A4;"><small>true</small></text>
+####  :comma?  _true_
 
 Put a comma after the value in a key-value pair, if it is not the
 last pair in a map.
 
-#### :force-nl? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :force-nl? _false_
 
 Force a new-line between each key and value pair in a map.
 
@@ -2691,17 +2690,17 @@ Force a new-line between each key and value pair in a map.
 
 ```
 
-#### :sort? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :sort? _true_
 
 Sort the key-value pairs in a map prior to output.  Alternatively, simply output
 them in the order in which they come out of the map.
 
-#### :sort-in-code? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :sort-in-code? _false_
 
 If the map appears inside of a list that seems to be code, should it
 be sorted.
 
-#### :key-order <text style="color:#A4A4A4;"><small>nil</small></text>
+#### :key-order _nil_
 
 Accepts a vector which contains keys which should sort before all
 other keys.  Typically these keys would be keywords, strings, or
@@ -2820,8 +2819,8 @@ When working with hundreds of maps, even the tiny improvement
 made by ordering a few keys in a better way can reduce the cognitive
 load, particularly when debugging.
 
-#### :key-ignore <text style="color:#A4A4A4;"><small>nil</small></text>
-#### :key-ignore-silent <text style="color:#A4A4A4;"><small>nil</small></text>
+#### :key-ignore _nil_
+#### :key-ignore-silent _nil_
 
 You can also ignore keys (or key sequences) in maps when formatting
 them.  There are two basic approaches.  `:key-ignore` will replace
@@ -3019,7 +3018,7 @@ zprint.core=> (czprint sort-demo {:map {:key-ignore [[:detail :code]]}})
   :type "error"}]
 ```
 
-####  :key-color  <text style="color:#A4A4A4;"><small>nil</small></text>
+####  :key-color  _nil_
 
 The value of `:key-color` is a map which relates keys that are
 'constants' to a color in which to print that key.  A constant is
@@ -3030,7 +3029,7 @@ with `:key-order [:key1 :key2 ...]` which is another way to distinguish
 a special key.  You can place some keys at the front of the map and
 you can also adjust their colors to meet your needs.
 
-####  :key-value-color  <text style="color:#A4A4A4;"><small>nil</small></text>
+####  :key-value-color  _nil_
 
 The value of `:key-value-color` is a map which relates keys (that
 don't have to be constants) to a color-map which is merged into the
@@ -3039,7 +3038,7 @@ This way you can have the values of some keys formatted in a color that
 is different from the color in which they would normally be formatted
 based on their type.
 
-####  :key-depth-color  <text style="color:#A4A4A4;"><small>nil</small></text>
+####  :key-depth-color  _nil_
 
 Note that this is an EXPERIMENTAL feature.  The value of `:key-depth-color` is
 a vector of colors, and these colors will be used to color the keys which
@@ -3051,7 +3050,7 @@ be used.  If you also have defined a `:key-color` map, any colors speciied
 in that map for specific keys will override the color that they would be
 given by the `:key-depth-color` vector.
 
-####  :lift-ns?  <text style="color:#A4A4A4;"><small>true</small></text>
+####  :lift-ns?  _true_
 
 When all of the keys in a map are namespaced, and they all have the same
 key, "lift" that namespace out of the keys and make it a namespaced map.
@@ -3070,11 +3069,11 @@ this cannot be "lifted" when encountered in a string because there is no
 way to reliably infer the implicit namespace.  Thus, the entire map
 will not be lifted if it contains a single `::a` type key in it.
 
-####  :lift-ns-in-code?  <text style="color:#A4A4A4;"><small>false</small></text>
+####  :lift-ns-in-code?  _false_
 
 Controls whether to actually lift the namespace if the map is in code.
 
-####  :unlift-ns?  <text style="color:#A4A4A4;"><small>false</small></text>
+####  :unlift-ns?  _false_
 
 This only applies when dealing with formatting code or strings.  When
 the map was specified with the namespace "lifted", then distribute the
@@ -3090,7 +3089,7 @@ Note that `:unlift-ns? true` only works if `:lifts-ns? false` is present,
 since otherwise zprint won't know which keyword to honor, and `:lift-ns?` was
 there first.
 
-#### :indent-only? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :indent-only? _false_
 
 Do not add or remove newlines.  Just indent the lines that are there and
 regularize whitespace.
@@ -3106,7 +3105,7 @@ When elements are formatted with `:object?` `true`, then the output
 if formatted using the information specified in the `:object`
 information.
 
-##### :indent <text style="color:#A4A4A4;"><small>1</small></text>
+##### :indent _1_
 _____
 ## :output
 
@@ -3117,12 +3116,12 @@ Determines whether to highlight a part of the structure, and which
 part to highlight. Only one of `:zloc?` or `:path` can have a value.
 
 Contains a map with the following possible keys.
-##### :zloc? <text style="color:#A4A4A4;"><small>false</small></text>
+##### :zloc? _false_
 If true, indicates that the first argument is a zipper, and the zipper
 currently "points at" the expression at which to focus.  zprint will
 print the entire zipper, and highlight the expression at which the
 zipper is currently pointing.
-##### :path <text style="color:#A4A4A4;"><small>nil</small></text>
+##### :path _nil_
 The path is a vector of integers, which indicates where the focus
 should be placed.  Each number in the vector indicates moving into
 a structure, and the value of the number indicates the element within
@@ -3139,13 +3138,13 @@ The :pair key controls the printing of the arguments of a function
 which has -pair in its function type (e.g. `:arg1-pair`, `:pair-fn`,
 `:arg2-pair`).  `:pair`
 
-##### :indent <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :hang-expand <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang-diff <text style="color:#A4A4A4;"><small>1</small></text>
-##### :justify? <text style="color:#A4A4A4;"><small>false</small></text>
+##### :indent _2_
+##### :hang? _true_
+##### :hang-expand _2_
+##### :hang-diff _1_
+##### :justify? _false_
 
-#### :force-nl? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :force-nl? _false_
 
 If you wish to force a newline between all things that are paired
 (which is more than just `cond`), you can use `:force-nl?`.  For example:
@@ -3174,12 +3173,12 @@ into the set of `:fn-gt2-force-nl`, thus:
 (cond abcd b
       cdef d)
 ```
-#### :flow? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :flow? _false_
 
 Format the right-hand part of every pair to onto a different
 line from the left-hand part of every pair.
 
-#### :nl-separator? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :nl-separator? _false_
 
 Insert an entirely blank line between every pair where the right hand part
 of the pair is formatted as a flow.
@@ -3243,9 +3242,9 @@ _____
 The :pair-fn key controls the printing of the arguments of a function
 which has :pair-fn as its function type (e.g. `cond`).
 
-##### :hang? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :hang-expand <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang-diff <text style="color:#A4A4A4;"><small>1</small></text>
+##### :hang? _true_
+##### :hang-expand _2_
+##### :hang-diff _1_
 
 This function type exists largely to allow you to control how the
 pairs of a `cond` are formatted with respect to the function name.
@@ -3276,14 +3275,14 @@ of the keys which are supported for `:map` are supported for `:reader-cond`
 `:sort?` and specify a `:key-order` vector to order the elements of a
 reader conditional.
 
-##### :indent <text style="color:#A4A4A4;"><small>2</small></text>
-##### :hang? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :hang-expand <text style="color:#A4A4A4;"><small>1000.0</small></text>
-##### :hang-diff <text style="color:#A4A4A4;"><small>1</small></text>
-##### :force-nl? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :sort? <text style="color:#A4A4A4;"><small>false</small></text>
-##### :sort-in-code? <text style="color:#A4A4A4;"><small>false</small></text>
-##### :key-order <text style="color:#A4A4A4;"><small>nil</small></text>
+##### :indent _2_
+##### :hang? _true_
+##### :hang-expand _1000.0_
+##### :hang-diff _1_
+##### :force-nl? _true_
+##### :sort? _false_
+##### :sort-in-code? _false_
+##### :key-order _nil_
 
 _____
 ## :record
@@ -3291,18 +3290,18 @@ _____
 Records are printed with the record-type and value of the record
 shown with map syntax, or by calling their `toString()` method.
 
-#### :to-string? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :to-string? _false_
 
 This will output a record by calling its `toString()` java method, which
 can be useful for some records. If the record contains a lot of information
 that you didn't want to print, for instance. If `:to-string?` is true,
 it overrides the other `:record` configuration options.
 
-#### :hang? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :hang? _true_
 
 Should a hang be attempted?  See example below.
 
-#### :record-type? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :record-type? _true_
 
 Should the record type be output?
 
@@ -3343,22 +3342,22 @@ _____
 
 `:set` supports the same keys as does vector and a few more.
 
-##### :indent <text style="color:#A4A4A4;"><small>1</small></text>
-##### :wrap? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :wrap-coll? <text style="color:#A4A4A4;"><small>true</small></text>
-##### :wrap-after-multi? <text style="color:#A4A4A4;"><small>true</small></text>
+##### :indent _1_
+##### :wrap? _true_
+##### :wrap-coll? _true_
+##### :wrap-after-multi? _true_
 
-#### :indent-only? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :indent-only? _false_
 
 Do not add or remove newlines.  Just indent the lines that are there and
 regularize whitespace.
 
-#### :sort? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :sort? _true_
 
 Sort the elements in a set prior to output.  Alternatively, simply output
 them in the order in which they come out of the set.
 
-#### :sort-in-code? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :sort-in-code? _false_
 
 If the set appears inside of a list that seems to be code, should it
 be sorted.
@@ -3371,7 +3370,7 @@ _____
 supports specs, and the function being output _has_ a spec.  If
 that is true, and if:
 
-##### :docstring? <text style="color:#A4A4A4;"><small>true</small></text>
+##### :docstring? _true_
 
 is also true, then zprint will format the spec and append it to the
 docstring.  At present this only works for docstrings in `defn` and
@@ -3838,25 +3837,25 @@ zprint will expand tabs by default when parsing a string, largely
 in order to properly size comments.  You can disable tab expansion
 and you can set the tab size.
 
-#### :expand? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :expand? _true_
 
 Expand tabs.
 
-#### :size <text style="color:#A4A4A4;"><small>8</small></text>
+#### :size _8_
 
 An integer for the tab size for tab expansion.
 
 _____
 ## :vector
 
-##### :indent <text style="color:#A4A4A4;"><small>1</small></text>
+##### :indent _1_
 
-#### :indent-only? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :indent-only? _false_
 
 Do not add or remove newlines.  Just indent the lines that are there
 and regularize other whitespace.
 
-#### :fn-format <text style="color:#A4A4A4;"><small>nil</small></text>
+#### :fn-format _nil_
 
 There are a rich set of formatting options available to lists through
 the `:fn-map`, which relates function names to formatting styles.
@@ -3950,7 +3949,7 @@ clean up the formatting of a file.  But if you are using zprint to enforce
 a particular formatting approach, then `:fn-format` and `:option-fn` can
 be very useful.
 
-#### :option-fn-first <text style="color:#A4A4A4;"><small>nil</small></text>
+#### :option-fn-first _nil_
 
 Vectors often come with data that needs different formatting than the
 default or than the code around them needs.  To support this capability,
@@ -4013,7 +4012,7 @@ used. `:option-fn-first` is executed first, and the results of that are given
 to `:option-fn` as the options map.
 
 
-#### :option-fn <text style="color:#A4A4A4;"><small>nil</small></text>
+#### :option-fn _nil_
 
 Vectors often come with data that needs different formatting than
 the default or than the code around them needs.  To support this
@@ -4050,7 +4049,7 @@ Note that `:option-fn` and `:option-fn-first` can both be
 used. `:option-fn-first` is executed first, and the results of that are given
 to `:option-fn` as the options map.
 
-#### :respect-nl? <text style="color:#A4A4A4;"><small>false</small></text>
+#### :respect-nl? _false_
 
 Normally, zprint ignores all newlines when formatting.  However, sometimes
 people will hand-format vectors to make them more understandable.  This
@@ -4132,7 +4131,7 @@ be formatted with `:respect-nl? true`. The more complex answer is
 to employ `:option-fn-first`, above (which is what `:style
 :keyword-respect-nl` does).
 
-#### :wrap? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :wrap? _true_
 
 Should it wrap its contents, or just list each on a separate line
 if they don't all fit on one line?
@@ -4152,7 +4151,7 @@ a line and then continue on the next line.
 ```
 
 
-#### :wrap-coll? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :wrap-coll? _true_
 
 If there is a collection in the vector, should it wrap?
 
@@ -4190,7 +4189,7 @@ If there is a collection in the vector, should it wrap?
  18
  19]
 ```
-#### :wrap-after-multi? <text style="color:#A4A4A4;"><small>true</small></text>
+#### :wrap-after-multi? _true_
 
 Should a vector continue to wrap after a multi-line element is
 printed?
