@@ -5,6 +5,8 @@ of pretty printing capabilities for both Clojure code and Clojure/EDN
 structures.  It can meet almost anyone's needs.  As such, it supports
 a number of major source code formattng approaches.
 
+[![cljdoc badge](https://cljdoc.org/badge/zprint/zprint)](https://cljdoc.org/d/zprint/zprint/CURRENT)
+
 ## See zprint:
 
   * [__classic zprint__](./doc/types/classic.md) -- ignores whitespace 
@@ -43,7 +45,8 @@ In addition, zprint is very handy [__to use at the REPL__](./doc/types/repl.md).
 
 Maybe one of the existing "styles" will meet your needs.  All you have to
 do is put `{:style ...}` on the command line or as the third argument
-to a zprint call.
+to a zprint call.  For example, `{:style :community}` or 
+`{:style :respect-bl}`.
 
 Some commonly used styles:
 
@@ -74,12 +77,9 @@ Some commonly used styles:
   * [how comments are handled](./doc/options/comments.md)
   * [anything else...](./doc/reference.md#introduction-to-configuration)
 
-## cljdod:
+## Usage
 
 [![cljdoc badge](https://cljdoc.org/badge/zprint/zprint)](https://cljdoc.org/d/zprint/zprint/CURRENT)
-
-
-## Usage
 
 ### Clojure 1.9, 1.10, 1.10.1:
 

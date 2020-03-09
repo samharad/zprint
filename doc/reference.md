@@ -2554,7 +2554,7 @@ This whole capability is experimental until further notice.  There may be
 a better way of accomplishing this, or the API may change in important
 ways.  In the event you write a function that works, let me know!
 
-### :respect-bl? _false_
+#### :respect-bl? _false_
 
 This will cause zprint to respect incoming blank lines. If this is
 enabled, zprint will add newlines and remove newlines as necessary,
@@ -2574,7 +2574,7 @@ If you use blank lines a lot within function definitions in order
 to make them more readable, this can be a good capability to enable
 globally.
 
-### :respect-nl? _false_
+#### :respect-nl? _false_
 
 This will cause zprint to respect incoming newlines. If this is
 enabled, zprint will add newlines, but will not remove any existing
@@ -3137,7 +3137,7 @@ is indented identically since there is no assumption that key-value pairs
 are placed on lines in any particular way.   Note that commas are not
 added, but existing commas will be included if `:comma?` flag is true.
 
-### :respect-bl? _false_
+#### :respect-bl? _false_
 
 This will cause zprint to respect incoming blank lines. If this is
 enabled, zprint will add newlines and remove newlines as necessary,
@@ -3153,7 +3153,7 @@ If you wish to use zprint to enforce a particular format, using
 `:respect-bl?` might be a bad idea -- since it depends on the
 incoming source with regard to blank lines.
 
-### :respect-nl? _false_
+#### :respect-nl? _false_
 
 This will cause zprint to respect incoming newlines. If this is
 enabled, zprint will add newlines, but will not remove any existing
@@ -3415,7 +3415,7 @@ _____
 Do not add or remove newlines.  Just indent the lines that are there and
 regularize whitespace.
 
-### :respect-bl? _false_
+#### :respect-bl? _false_
 
 This will cause zprint to respect incoming blank lines. If this is
 enabled, zprint will add newlines and remove newlines as necessary,
@@ -3435,7 +3435,7 @@ If you use blank lines a lot within sets embedded in function
 definitions in order to make them more readable, this can be a good
 capability to enable globally.
 
-### :respect-nl? _false_
+#### :respect-nl? _false_
 
 This will cause zprint to respect incoming newlines. If this is
 enabled, zprint will add newlines, but will not remove any existing
@@ -4141,7 +4141,7 @@ Note that `:option-fn` and `:option-fn-first` can both be
 used. `:option-fn-first` is executed first, and the results of that are given
 to `:option-fn` as the options map.
 
-### :respect-bl? _false_
+#### :respect-bl? _false_
 
 This will cause zprint to respect incoming blank lines. If this is
 enabled, zprint will add newlines and remove newlines as necessary,
