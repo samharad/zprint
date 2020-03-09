@@ -74,6 +74,10 @@ Some commonly used styles:
   * [how comments are handled](./doc/options/comments.md)
   * [anything else...](./doc/reference.md#introduction-to-configuration)
 
+## cljdod:
+
+[![cljdoc badge](https://cljdoc.org/badge/zprint/zprint)](https://cljdoc.org/d/zprint/zprint/CURRENT)
+
 
 ## Usage
 
@@ -169,6 +173,7 @@ include the following library when using Clojure 1.8:
       * [:style-map](./doc/reference.md#style-and-style-map)
       * [:tab](./doc/reference.md#tab)
       * [:vector](./doc/reference.md#vector)
+      * [:vector-fn](./doc/reference.md#vector-fn)
 
 
 ### Contributors
