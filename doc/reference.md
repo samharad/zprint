@@ -1686,7 +1686,7 @@ an `:indent 2` will leave two blanks to the right of the left "bracket"
 (e.g. "{" for maps).  For other things an `:indent 2` will leave one blank
 to the right of the left bracket.
 
-### :indent-only?
+### :indent-only? _false_
 
 This is configurable for the major data structures: lists, maps,
 sets, and vectors.  When enabled, zprint will not add or remove
@@ -1696,7 +1696,16 @@ parameters for the lists, maps, sets, or vectors will be
 ignored except for `:indent` (for all of the data types) and
 `:indent-only-style` (to control hang or flow, only for lists).
 
-### :respect-nl?
+### :respect-bl? _false_
+
+This will cause zprint to respect incoming blank lines. If this is enabled,
+zprint will add newlines and remove newlines as necessary, but will not remove 
+any existing blank lines from
+incoming source.  Existing formatting configuration will be followed, of
+course with the constraint that existing blank lines will be included wherever
+they appear.
+
+### :respect-nl? _false_
 
 This will cause zprint to respect incoming newlines. If this is enabled,
 zprint will add newlines, but will not remove any existing newlines from
@@ -1734,7 +1743,7 @@ too much vertical space (which makes things less clear, instead of more
 clear).  There are several values which will tune the output for
 hang and flow.
 
-#### :hang?
+#### :hang? _true_
 
 If `:hang?` is true, zprint will attempt to hang if all of the elements in
 the collection don't fit on one line. If it is false, it won't
@@ -1783,7 +1792,7 @@ You could set `:hang-diff` to 0 if you wanted to be more "strict", and
 see if you like the results better.  Probably you won't want to deal
 with this level of control.
 
-#### :flow?
+#### :flow? _false_
 
 If `:flow?` is true, all of the elements of a collection will be forced
 onto a new line, even if they would have fit on the same line originally.
@@ -1891,7 +1900,7 @@ formatting `:extend` types work in an alternative way:
 
 ```
 
-#### :force-nl?
+#### :force-nl? _false_
 
 Very similar to `:flow?`, but operates on pairs, not individual elements
 of a pair.  For example:
@@ -1923,7 +1932,7 @@ Also works with `:pair` functions
       cdef d)
 ```
 
-#### :nl-separator?
+#### :nl-separator? _false_
 
 This will put a blank line between any pair where the right part of a pair
 was formatted with a flow. Some examples:
@@ -2005,7 +2014,7 @@ was formatted with a flow. Some examples:
 ```
 
 
-#### :justify?
+#### :justify? _false_
 
 Turn on [justification](#a-note-on-justifying-two-up-printing).
 Default is nil (justification off).
@@ -3418,7 +3427,7 @@ to do this (or open an issue and ask).
 This attempts to recreate the community standards defined in the
 [community style guide](https://github.com/bbatsov/clojure-style-guide).
 It is an evolving effort -- if you see something that matters to you
-that differs from the community style guide when using `:style :community`,
+that differs from the community style guide when using `{:style :community}`,
 please create an issue explaining the difference.
 
 #### :extend-nl
@@ -3510,7 +3519,7 @@ information more understandable.
 
 ```
 
-#### :indent-only
+#### :indent-only 
 
 This is __very different__ from classic zprint!
 
@@ -3623,7 +3632,7 @@ effective default, but `:no-hang` can be used to turn it all off
 if you wish.  If `:hang?` is off for some reason, you can use
 `:all-hang` to turn it back on.
 
-#### :respect-bl
+#### :respect-bl 
 
 Respect blank lines: in the same way that `:respect-nl?` has been
 implemented for lists, vectors, maps and sets, now `:respect-bl?`
@@ -3697,7 +3706,7 @@ An example from clojure.core:
 ```
 For more examples, see [Respect Blank Lines](./types/respectbl.md).
 
-#### :respect-nl
+#### :respect-nl 
 
 This will cause zprint to respect incoming newlines. If this is enabled,
 zprint will add newlines, but will not remove any existing newlines from
