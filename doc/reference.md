@@ -3388,6 +3388,31 @@ options map.
 
 ### Available Styles:
 
+#### :all-hang
+
+Some implementations of zprint into runnable programs turn off all hangs
+by default, since performance is rather better with them off.  If you
+are using one of these programs, you can turn all of the hangs back
+on (which is their normal default) by using this style.
+
+#### :backtranslate
+
+The built in pretty printer for Clojure, `clojure.pprint`, will
+backtranslate `(quote a)` to `'a`, `(var a)` to `#'a`, 
+`(clojure.core/deref a)` to `@a` and `(clojure.core/unquote a)` to
+`~a`.  `clojure.pprint` only does this when printing data structures, (which
+may be code), since that is all it operates on.  Zprint has been
+enhanced to optionally perform this backtranslation when formatting
+structures.  Use `{:style :backtranslate}` to get this behavior, and
+see the definition of that style to see how it was implemented.
+Even if you use `{:style :backtranslate}`, there is no change to the
+way that source is formatted since zprint has been enhanced to 
+distinguish between source and structures in some situations.  You could
+configure zprint to do this backtranslation for source if you wished to,
+though there is not a pre-defined style to enable that operation.
+See the implementation for `{:style :backtranslate}` for a hint for how
+to do this (or open an issue and ask). 
+
 #### :community
 
 This attempts to recreate the community standards defined in the
@@ -3396,24 +3421,281 @@ It is an evolving effort -- if you see something that matters to you
 that differs from the community style guide when using `:style :community`,
 please create an issue explaining the difference.
 
-#### :justified
+#### :extend-nl
 
-This sets `:justify? true` in each of `:binding`, `:pair`, and `:map`.
-It is useful to see what you think about justfied output.
+This sets up a different way of formatting extend styles, with a new-line
+between each group.  For example
+
+```clojure
+(czprint-fn ->Typetest1)
+
+; Default output
+
+(deftype Typetest1
+  [cnt _meta]
+  clojure.lang.IHashEq
+    (hasheq [this] (list this) (list this this) (list this this this this))
+  clojure.lang.Counted (count [_] cnt)
+  clojure.lang.IMeta (meta [_] _meta))
+
+(czprint-fn ->Typetest1 {:style :extend-nl})
+
+; Alternative output with {:style :extend-nl}
+
+(deftype Typetest1
+  [cnt _meta]
+  clojure.lang.IHashEq
+  (hasheq [this] (list this) (list this this) (list this this this this))
+
+  clojure.lang.Counted
+  (count [_] cnt)
+
+  clojure.lang.IMeta
+  (meta [_] _meta))
+
+```
+#### :how-to-ns
+
+__Experimental:__ Still working out some of the details, so the
+specifics may change.
+
+This will format `ns` declarations regarding newlines and indentation
+as in Stewart Sierra's "How to ns".  Specifically, it will indent
+lists by 1 instead of 2, and not hang lists except for `:import`.
+If you follow the instructions in the "How to ns" blog post, the
+new lines and indentation will be correct.  zprint will not reorganize
+the `ns` declaration or change lists to vectors or otherwise change
+the order or syntax of what you have entered -- that's still your
+responsibility.
+
+#### :hiccup
+
+Recognizes when the information in a vector is in `hiccup` format,
+and format just those vectors differently in order make the hiccup
+information more understandable.
+
+```clojure
+
+; Here is some hiccup without using this style:
+
+(czprint-fn header)
+
+(defn header
+  [{:keys [title icon description]}]
+  [:header.container
+   [:div.cols {:class "gap top", :on-click (fn [] (println "tsers"))}
+    [:div {:class "shrink"} icon]
+    [:div.rows {:class "gap-xs"}
+     [:dov.cols {:class "middle between"} [:div title]
+      [:div {:class "shrink"} [:button "x"]]] [:div description]]]])
+
+; Here is the same hiccup using the :hiccup style:
+
+(czprint-fn header {:style :hiccup})
+
+(defn header
+  [{:keys [title icon description]}]
+  [:header.container
+   [:div.cols {:class "gap top", :on-click (fn [] (println "tsers"))}
+    [:div {:class "shrink"} icon]
+    [:div.rows {:class "gap-xs"}
+     [:dov.cols {:class "middle between"}
+      [:div title]
+      [:div {:class "shrink"} [:button "x"]]]
+     [:div description]]]])
+
+; Not a huge difference, but note the use of :arg1-force-nl to clean up
+; the display of the elements beyond the map in each vector.  Were this more
+; complex hiccup, the difference would be more valuable.
+
+```
 
 #### :indent-only
 
 This is __very different__ from classic zprint!
 
-When configured, zprint will not add or remove newlines from the
-incoming source, but will otherwise regularize whitespace.  Lists
-will be formatted as a hang if the incoming list was fomatted as a
-hang (controlled by `{:list {:indent-only-style :input-hang}}`.
-The indent for maps goes to 0.  Most of the other configuration
-parameters will be ignored when `:indent-only` is enabled.
+When `:indent-only` is configured, zprint will not add or remove
+newlines from the incoming source, but will otherwise regularize
+whitespace.  Lists will be formatted as a hang if the incoming list
+was formatted as a hang (controlled by `{:list {:indent-only-style
+:input-hang}}`.  The indent for maps goes to 0.  Most of the other
+configuration parameters will be ignored when `:indent-only` is
+enabled.
 
 See `:respect-nl` below for a comparison of `:indent-only`, `:respect-nl`,
 and classic zprint.
+
+For more examples, see [Indent Only](./types/indentonly.md).
+
+#### :justified
+
+This sets `:justify? true` in each of `:binding`, `:pair`, and `:map`.
+It is useful to see what you think about justfied output.
+
+#### :keyword-respect-nl
+
+This style is used to preserve most of the existing formatting for
+vectors with keywords as the first element.  The typical example was 
+hiccup or rum data inside of a function or in a source file. However,
+subsequent enhancements allowed the implementation of a better style
+for hiccup data -- `:hiccup`. 
+
+If you specify this style, every vector with a keyword as the first
+element will preserve the newlines present in the input to zprint.
+zprint will still handle the indenting, and none of the existing
+newlines will cause zprint to violate its basic formatting rules
+(e.g., lines will still fit in the width, etc.).  But the existing
+hand-formatting will typically be preserved if it makes any sense
+at all.
+
+If you are using hiccup format, you should use the `:hiccup` style.
+
+This is usually only useful formatting source.  Here is an example
+using a `rum` macro (taken from GitHub rum/examples/rum/examples/inputs.cljc):
+
+```clojure 
+; The original way it was defined:
+(print re1)
+
+(rum/defc inputs []
+  (let [*ref (atom nil)]
+    [:dl
+      [:dt "Input"]  [:dd (reactive-input *ref)]
+      [:dt "Checks"] [:dd (checkboxes *ref)]
+      [:dt "Radio"]  [:dd (radio *ref)]
+      [:dt "Select"] [:dd (select *ref)]
+      [:dt (value *ref)] [:dd (shuffle-button *ref)]]))nil
+
+; An unlovely transformation:
+
+(zprint re1 {:parse-string? true})
+
+(rum/defc inputs
+  []
+  (let [*ref (atom nil)]
+    [:dl [:dt "Input"] [:dd (reactive-input *ref)] [:dt "Checks"]
+     [:dd (checkboxes *ref)] [:dt "Radio"] [:dd (radio *ref)] [:dt "Select"]
+     [:dd (select *ref)] [:dt (value *ref)] [:dd (shuffle-button *ref)]]))
+
+; A much better approach (close, though not identical, to the input):
+
+(zprint re1 {:parse-string? true :style :keyword-respect-nl})
+
+(rum/defc inputs
+  []
+  (let [*ref (atom nil)]
+    [:dl
+     [:dt "Input"] [:dd (reactive-input *ref)]
+     [:dt "Checks"] [:dd (checkboxes *ref)]
+     [:dt "Radio"] [:dd (radio *ref)]
+     [:dt "Select"] [:dd (select *ref)]
+     [:dt (value *ref)] [:dd (shuffle-button *ref)]]))
+
+```
+
+The implementation of this style is as follows:
+
+```clojure 
+      :keyword-respect-nl {:vector
+                             {:option-fn-first
+                                #(let [k? (keyword? %2)]
+                                   (when (not= k? (:respect-nl? (:vector %1)))
+                                     {:vector {:respect-nl? k?}}))}},
+```
+which serves as an example of how to implement an `:option-fn-first`
+function for vectors.
+
+#### :map-nl, :pair-nl, :binding-nl
+
+These are convenience styles which simply allow you to set `{:indent
+0 :nl-separator? true}` for each of the associated format elements.
+They simply exist to save you some typing if these styles are
+favorites of yours.
+
+#### :no-hang, :all-hang
+
+These two styles will turn on or off all of the `:hang?` booleans
+in `:map`, `:list`, `:extend`, `:pair`, `:pair-fn`, `:reader-cond`,
+and `:record`.  The `:hang?` capability almost always produces
+clearly better results, but can take more time (particularly in
+Clojurescript, as it is single-threaded).  `:all-hang` is the
+effective default, but `:no-hang` can be used to turn it all off
+if you wish.  If `:hang?` is off for some reason, you can use
+`:all-hang` to turn it back on.
+
+#### :respect-bl
+
+Respect blank lines: in the same way that `:respect-nl?` has been
+implemented for lists, vectors, maps and sets, now `:respect-bl?`
+has been implemented for them all as well.  This means that whenever
+a blank line appears in the source, it will be "respected", and
+will appear in the output.  However, all other formatting will be
+applied around any blank lines that may appear.
+
+While `:respect-nl?` was something that you might want to configure
+for formatting a single function, `:respect-bl?` is something that
+is perfectly reasonable to configure for processing whole files,
+or perhaps all of the time in your `~/.zprintrc` file. If you
+do that, everything will operate as normal with zprint, but if you
+put blank lines inside a function definition, those blank lines
+will continue to appear in the output.  And all of the information
+will all be formatted correctly around those blank lines.
+
+Note that blank lines at the top level (i.e., outside of function
+definitions and `(def ...)` expressions) are always respected and 
+never changed.
+
+An example from clojure.core:
+
+```clojure
+; Classic zprint 
+
+(czprint-fn ->ArrayChunk)
+
+(deftype ArrayChunk [^clojure.core.ArrayManager am arr ^int off ^int end]
+  clojure.lang.Indexed
+    (nth [_ i] (.aget am arr (+ off i)))
+    (count [_] (- end off))
+  clojure.lang.IChunk
+    (dropFirst [_]
+      (if (= off end)
+        (throw (IllegalStateException. "dropFirst of empty chunk"))
+        (new ArrayChunk am arr (inc off) end)))
+    (reduce [_ f init]
+      (loop [ret init
+             i off]
+        (if (< i end)
+          (let [ret (f ret (.aget am arr i))]
+            (if (reduced? ret) ret (recur ret (inc i))))
+          ret))))
+```
+```clojure
+;Classic zprint {:style :respect-bl}
+
+(czprint-fn ->ArrayChunk {:style :respect-bl})
+
+(deftype ArrayChunk [^clojure.core.ArrayManager am arr ^int off ^int end]
+  
+  clojure.lang.Indexed
+    (nth [_ i] (.aget am arr (+ off i)))
+    
+    (count [_] (- end off))
+  
+  clojure.lang.IChunk
+    (dropFirst [_]
+      (if (= off end)
+        (throw (IllegalStateException. "dropFirst of empty chunk"))
+        (new ArrayChunk am arr (inc off) end)))
+    
+    (reduce [_ f init]
+      (loop [ret init
+             i off]
+        (if (< i end)
+          (let [ret (f ret (.aget am arr i))]
+            (if (reduced? ret) ret (recur ret (inc i))))
+          ret))))
+```
+For more examples, see [Respect Blank Lines](./types/respectbl.md).
 
 #### :respect-nl
 
@@ -3509,143 +3791,15 @@ Some examples of classic zprint, `:respect-nl`, and `:indent-only`:
 
 ```
 
-#### :extend-nl
-
-This sets up a different way of formatting extend styles, with a new-line
-between each group.  For example
-
-```clojure
-(czprint-fn ->Typetest1)
-
-; Default output
-
-(deftype Typetest1
-  [cnt _meta]
-  clojure.lang.IHashEq
-    (hasheq [this] (list this) (list this this) (list this this this this))
-  clojure.lang.Counted (count [_] cnt)
-  clojure.lang.IMeta (meta [_] _meta))
-
-(czprint-fn ->Typetest1 {:style :extend-nl})
-
-; Alternative output with {:style :extend-nl}
-
-(deftype Typetest1
-  [cnt _meta]
-  clojure.lang.IHashEq
-  (hasheq [this] (list this) (list this this) (list this this this this))
-
-  clojure.lang.Counted
-  (count [_] cnt)
-
-  clojure.lang.IMeta
-  (meta [_] _meta))
-
-```
-#### :how-to-ns
-
-__Experimental:__ Still working out some of the details, so the
-specifics may change.
-
-This will format `ns` declarations regarding newlines and indentation
-as in Stewart Sierra's "How to ns".  Specifically, it will indent
-lists by 1 instead of 2, and not hang lists except for `:import`.
-If you follow the instructions in the "How to ns" blog post, the
-new lines and indentation will be correct.  zprint will not reorganize
-the `ns` declaration or change lists to vectors or otherwise change
-the order or syntax of what you have entered -- that's still your
-responsibility.
-
-#### :map-nl, :pair-nl, :binding-nl
-
-These are convenience styles which simply allow you to set `{:indent 0 :nl-separator? true}` for each of the associated format elements.  They simply exist to
-save you some typing if these styles are favorites of yours.
-
 #### :sort-dependencies
 
 __EXPERIMENTAL__
 
 Sort the dependencies in a leiningen project.clj file in alphabetical
-order.  Technically, it will sort the vectors in the value of any key
-named `:dependencies` inside any function (macro) named `defproject`.
-Has no effect when formatting a structure (as opposed to parsing a
-string and formatting code).
-
-#### :keyword-respect-nl
-
-This style is used to preserve most of the existing formatting for
-vectors with keywords as the first element.  The typical example is
-hiccup or rum data inside of a function or in a source file.  If
-you specify this style, every vector with a keyword as the first element
-will preserve the newlines present in the input to zprint.  zprint will
-still handle the indenting, and none of the existing newlines will cause
-zprint to violate its basic formatting rules (e.g., lines will still
-fit in the width, etc.).  But the existing hand-formatting will typically
-be preserved if it makes any sense at all.
-
-This is usually only useful formatting source.  Here is an example using
-a `rum` macro (taken from GitHub rum/examples/rum/examples/inputs.cljc):
-
-```clojure
-; The original way it was defined:
-
-(print re1)
-
-(rum/defc inputs []
-  (let [*ref (atom nil)]
-    [:dl
-      [:dt "Input"]  [:dd (reactive-input *ref)]
-      [:dt "Checks"] [:dd (checkboxes *ref)]
-      [:dt "Radio"]  [:dd (radio *ref)]
-      [:dt "Select"] [:dd (select *ref)]
-      [:dt (value *ref)] [:dd (shuffle-button *ref)]]))nil
-
-; An unlovely transformation:
-
-(zprint re1 {:parse-string? true})
-
-(rum/defc inputs
-  []
-  (let [*ref (atom nil)]
-    [:dl [:dt "Input"] [:dd (reactive-input *ref)] [:dt "Checks"]
-     [:dd (checkboxes *ref)] [:dt "Radio"] [:dd (radio *ref)] [:dt "Select"]
-     [:dd (select *ref)] [:dt (value *ref)] [:dd (shuffle-button *ref)]]))
-
-; A much better approach (close, though not identical, to the input):
-
-(zprint re1 {:parse-string? true :style :keyword-respect-nl})
-
-(rum/defc inputs
-  []
-  (let [*ref (atom nil)]
-    [:dl
-     [:dt "Input"] [:dd (reactive-input *ref)]
-     [:dt "Checks"] [:dd (checkboxes *ref)]
-     [:dt "Radio"] [:dd (radio *ref)]
-     [:dt "Select"] [:dd (select *ref)]
-     [:dt (value *ref)] [:dd (shuffle-button *ref)]]))
-```
-The implementation of this style is as follows:
-
-```clojure
-:keyword-respect-nl
-  {:vector {:option-fn-first #(let [k? (keyword? %2)]
-                               (when (not= k? (:respect-nl? (:vector %1)))
-                                 {:vector {:respect-nl? k?}}))}},
-```
-which serves as an example of how to implement an :option-fn-first
-function for vectors.
-
-#### :all-hang, :no-hang
-
-These two styles will turn on or off all of the `:hang?` booleans
-in `:map`, `:list`, `:extend`, `:pair`, `:pair-fn`, `:reader-cond`,
-and `:record`.  The `:hang?` capability almost always produces
-clearly better results, but can take more time (particularly in
-Clojurescript, as it is single-threaded).  `:all-hang` is the
-effective default, but `:no-hang` can be used to turn it all off
-if you wish.  If `:hang?` is off for some reason, you can use
-`:all-hang` to turn it back on.
+order.  Technically, it will sort the vectors in the value of any
+key named `:dependencies` inside any function (macro) named
+`defproject`.  Has no effect when formatting a structure (as opposed
+to parsing a string and formatting code).
 
 ### Defining your own styles
 
@@ -3663,15 +3817,14 @@ You might wish to define several styles with different color-maps,
 perhaps, allowing you to alter the colors more easily.
 
 You cannot define a style and apply it in the same configuration
-pass, as styles are applied before the rest of the configuration in
-a options map.
+pass, as styles are applied before the rest of the configuration
+in a options map.
 
-______
-## :tab
+______ ## :tab
 
-zprint will expand tabs by default when parsing a string, largely in order
-to properly size comments.  You can disable tab expansion and you can
-set the tab size.
+zprint will expand tabs by default when parsing a string, largely
+in order to properly size comments.  You can disable tab expansion
+and you can set the tab size.
 
 #### :expand? <text style="color:#A4A4A4;"><small>true</small></text>
 
@@ -3681,15 +3834,14 @@ Expand tabs.
 
 An integer for the tab size for tab expansion.
 
-_____
-## :vector
+_____ ## :vector
 
 ##### :indent <text style="color:#A4A4A4;"><small>1</small></text>
 
 #### :indent-only? <text style="color:#A4A4A4;"><small>false</small></text>
 
-Do not add or remove newlines.  Just indent the lines that are there and
-regularize other whitespace.
+Do not add or remove newlines.  Just indent the lines that are there
+and regularize other whitespace.
 
 #### :fn-format <text style="color:#A4A4A4;"><small>nil</small></text>
 
@@ -3717,18 +3869,18 @@ vector (but only that vector, not other vectors nested inside of
 it).
 
 Note that the `:fn-format` processing is done before testing for
-`:indent-only?` (as is the `:option-fn` and `:option-fn-first` processing
-as well), so if the result of the `:option-fn` or `:option-fn-first`
-processing sets `:fn-format`, then the value of `:indent-only?` in
-`:vector-fn` will control whether or not `:indent-only?` is used,
-not the value of `:indent-only?` in `:vector`.  This is worthy of
-mention in any case, but particularly because `:style :indent-only` does
-__not__ set `:indent-only?` for `:vector-fn`!
+`:indent-only?` (as is the `:option-fn` and `:option-fn-first`
+processing as well), so if the result of the `:option-fn` or
+`:option-fn-first` processing sets `:fn-format`, then the value of
+`:indent-only?` in `:vector-fn` will control whether or not
+`:indent-only?` is used, not the value of `:indent-only?` in
+`:vector`.  This is worthy of mention in any case, but particularly
+because `:style :indent-only` does __not__ set `:indent-only?` for
+`:vector-fn`!
 
 As an example, the `:hiccup` style is implemented as follows:
 
-```clojure
-{ ...
+```clojure { ...
       :hiccup {:vector
                  {:option-fn
                     (fn [opts n exprs]
@@ -3801,9 +3953,10 @@ to update an options map.  In addition, they are allowed on options
 maps that appear in calls to the zprint API.  They are also allowed
 in the `~/.zprintrc` file and an options map on the command line,
 but only for library use or when using the uberjar (including the
-`appcds` accelerated uberjar).  The prebuilt graalVM binaries in
-the GitHub releae do __not__ support use of functions in options
-maps in any external file or on the command line!  The functions
+`appcds` accelerated uberjar).  __The prebuilt graalVM binaries (i.e.,
+`zprintm-x.y.z` and `zprintl-x.y.z`) in
+the GitHub releae do not support use of functions in options
+maps in any external file or on the command line!__  The functions
 defined in the default options map are always allowed -- the above
 restrictions only apply to functions being read in from external
 files or from the command line.
@@ -3865,9 +4018,10 @@ to update an options map.  In addition, they are allowed on options
 maps that appear in calls to the zprint API.  They are also allowed
 in the `~/.zprintrc` file and an options map on the command line,
 but only for library use or when using the uberjar (including the
-`appcds` accelerated uberjar).  The prebuilt graalVM binaries in
-the GitHub release do __not__ support use of functions in options
-maps in any external file or on the command line!  The functions
+`appcds` accelerated uberjar).  __The prebuilt graalVM binaries (i.e.,
+`zprintm-x.y.z` and `zprintl-x.y.z`) in
+the GitHub release do not support use of functions in options
+maps in any external file or on the command line!__  The functions
 defined in the default options map are always allowed -- the above
 restrictions only apply to functions being read in from external
 files or from the command line.
