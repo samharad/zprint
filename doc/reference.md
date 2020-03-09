@@ -3430,6 +3430,8 @@ It is an evolving effort -- if you see something that matters to you
 that differs from the community style guide when using `{:style :community}`,
 please create an issue explaining the difference.
 
+For more discussion, see [Community](./options/community.md).
+
 #### :extend-nl
 
 This sets up a different way of formatting extend styles, with a new-line
@@ -3829,7 +3831,8 @@ You cannot define a style and apply it in the same configuration
 pass, as styles are applied before the rest of the configuration
 in a options map.
 
-______ ## :tab
+______
+## :tab
 
 zprint will expand tabs by default when parsing a string, largely
 in order to properly size comments.  You can disable tab expansion
@@ -3843,7 +3846,8 @@ Expand tabs.
 
 An integer for the tab size for tab expansion.
 
-_____ ## :vector
+_____
+## :vector
 
 ##### :indent <text style="color:#A4A4A4;"><small>1</small></text>
 
