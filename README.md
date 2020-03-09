@@ -72,7 +72,7 @@ Some commonly used styles:
   * [the colors used for formatting source](./doc/options/colors.md)
   * [how the second element of a pair is indented](./doc/options/pairs.md)
   * [how comments are handled](./doc/options/comments.md)
-  * [anything else...](./doc/reference.md)
+  * [anything else...](./doc/reference.md#introduction-to-configuration)
 
 
 ## Usage
