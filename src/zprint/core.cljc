@@ -125,7 +125,6 @@
 (def ^:dynamic *default-url-cache-secs* 300)
 
 (defn ^:no-doc load-options!
-  #?(:clj
        "Loads options from url, expecting an edn options map that will be passed
   to set-options! Valid options will be cached in 
   (str (:cache-loc (:cache options)) 
@@ -141,6 +140,7 @@
   HTTP urls will have the Cache-Control max-age parameter respected,
   falling back to the Expires header if set."
      [options url]
+  #?(:clj
        (let [^URL url (if (instance? URL url) url (URL. url))
              host (if (= "" (.getHost url)) "nohost" (.getHost url))
              url-as-filename (str host "_" (hash (str url)))
