@@ -124,8 +124,8 @@
 ; Default [:url :cache-secs] 
 (def ^:dynamic *default-url-cache-secs* 300)
 
-#?(:clj
-     (defn ^:no-doc load-options!
+(defn ^:no-doc load-options!
+  #?(:clj
        "Loads options from url, expecting an edn options map that will be passed
   to set-options! Valid options will be cached in 
   (str (:cache-loc (:cache options)) 
@@ -140,7 +140,7 @@
   Invalid options will throw an Exception.
   HTTP urls will have the Cache-Control max-age parameter respected,
   falling back to the Expires header if set."
-       [options url]
+     [options url]
        (let [^URL url (if (instance? URL url) url (URL. url))
              host (if (= "" (.getHost url)) "nohost" (.getHost url))
              url-as-filename (str host "_" (hash (str url)))
@@ -246,7 +246,8 @@
                  (throw ;5> no cache, failed remote
                    (Exception. (format "ERROR: retrieving config from %s: %s"
                                        url
-                                       (.getMessage e)))))))))))
+                                       (.getMessage e)))))))))
+     :cljs nil))
 
 (defn configure-all!
   "Do external configuration regardless of whether or not it already
