@@ -1,13 +1,13 @@
 # zprint reference
+:toc: macro
+:toclevels: 1
 
 __zprint__ is a library and command line tool providing a variety
 of pretty printing capabilities for both Clojure code and Clojure/EDN
 structures.  It can meet almost anyone's needs.  As such, it supports
 the a variety of major source code formattng approaches.
 
-## Table of Contents
-
-:toc:
+toc::[]
 
 ## What does zprint do?
 
@@ -2034,7 +2034,7 @@ Turn on [justification](#a-note-on-justifying-two-up-printing).
 Default is nil (justification off).
 
 # Configurable Elements
-______
+
 ## :agent, :atom, :delay, :fn, :future, :promise
 
 All of these elements are formatted in a readable manner by default,
@@ -2045,7 +2045,6 @@ which shows their current value and minimizes extra information.
 All of these elements can be formatted more as Clojure represents
 Java objects by setting `:object?` to true.
 
-_____
 ## :array
 
 Arrays are formatted by default with the values of their elements.
@@ -2090,7 +2089,7 @@ A simple example:
 
 Should it wrap its contents, or just list each on a separate line
 if they don't all fit on one line.?
-_____
+
 ## :binding
 
 Controls the formatting of the first argument of
@@ -2179,7 +2178,7 @@ alter the way binding pairs are printed:
       f]
   (list a f))
 ```
-_____
+
 ## :comment
 
 zprint has two fundemental regimes -- printing s-expressions and
@@ -2266,7 +2265,7 @@ zprint.core=> (czprint cd 75 {:parse-string? true :comment {:count? true}})
         (format other stuff))
   (list a :b :c "d"))
 ```
-_____
+
 ## :extend
 
 When formatting functions which have extend in their function types.
@@ -2352,7 +2351,7 @@ by `{:extend {:modifiers #{<element1> <element2>}}}` are added to
 the set (as opposed to replacing the set entirely). You can remove
 elements from the set by `{:remove {:extend {:modifers #{<thing-to-remove>}}}}`.
 
-_____
+
 ## :list
 
 Lists show up in lots of places, but mostly they are code.  So
@@ -2586,7 +2585,7 @@ newlines when formatting lists.  Existing formatting configuration
 will be followed, of course with the constraint that existing
 newlines will be included wherever they appear.
 
-_____
+
 ## :map
 
 Maps support both the __indent__ and __hang__ values, above.  The default
@@ -3165,7 +3164,7 @@ newlines when formatting lists.  Existing formatting configuration
 will be followed, of course with the constraint that existing
 newlines will be included wherever they appear.
 
-_____
+
 ## :object
 
 When elements are formatted with `:object?` `true`, then the output
@@ -3173,7 +3172,7 @@ if formatted using the information specified in the `:object`
 information.
 
 ##### :indent _1_
-_____
+
 ## :output
 
 This controls the overall output that is produced.
@@ -3198,7 +3197,7 @@ handling for bad paths is some sort of exception.
 If you have a structure like this: `[:a [:b [:c :d] :e :f]]`
 then the path `[1 1 0]` would highlight the `:c`.  The path `[1 1]` would
 highlight the `[:c :d]`.  The path `[0]` would highlight the `:a`.
-______
+_
 ## :pair
 
 The :pair key controls the printing of the arguments of a function
@@ -3303,7 +3302,7 @@ Some examples of how `:flow?` an `:nl-separator?` can interact:
   d)
 
 ```
-_____
+
 ## :pair-fn
 
 The :pair-fn key controls the printing of the arguments of a function
@@ -3332,7 +3331,7 @@ For example:
 
 The formatting of the pairs themselves is controlled by `:pair`.
 
-_____
+
 ## :reader-cond
 
 Reader conditionals are controlled by the `:reader-cond` key.  All
@@ -3351,7 +3350,7 @@ reader conditional.
 ##### :sort-in-code? _false_
 ##### :key-order _nil_
 
-_____
+
 ## :record
 
 Records are printed with the record-type and value of the record
@@ -3404,7 +3403,7 @@ An example of `:hang?`, `:record-type?`, and `:to-string?`
 
 "zprint.core.myrecord@682a5f6b"
 ```
-_____
+
 ## :set
 
 `:set` supports the same keys as does vector and a few more.
@@ -3458,7 +3457,7 @@ them in the order in which they come out of the set.
 If the set appears inside of a list that seems to be code, should it
 be sorted.
 
-_____
+
 ## :spec
 
 `:spec` controls how specs are integrated into the `(zprint-fn ...)` and
@@ -3472,7 +3471,7 @@ is also true, then zprint will format the spec and append it to the
 docstring.  At present this only works for docstrings in `defn` and
 `defmacro` definitions, not functions defined with `def`.
 
-______
+_
 ## :style and :style-map
 
 You specify a style by adding `:style <style>` at the top level
@@ -3926,7 +3925,7 @@ You cannot define a style and apply it in the same configuration
 pass, as styles are applied before the rest of the configuration
 in a options map.
 
-______
+_
 ## :tab
 
 zprint will expand tabs by default when parsing a string, largely
@@ -3941,7 +3940,7 @@ Expand tabs.
 
 An integer for the tab size for tab expansion.
 
-_____
+
 ## :vector
 
 ##### :indent _1_
@@ -4334,7 +4333,7 @@ printed?
   "key" "value"}
  10 11 12 13 14 15 16 17 18 19
 ```
-_____
+
 ## :vector-fn
 
 This is the configuration used when `:fn-format` is enabled for a vector.
@@ -4440,8 +4439,6 @@ newlines when formatting lists.  Existing formatting configuration
 will be followed, of course with the constraint that existing
 newlines will be included wherever they appear.
 
-______
-______
 ## Debugging the configuration
 
 When something is configurable in a lot of different ways, it can
