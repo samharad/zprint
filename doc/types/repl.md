@@ -1,10 +1,10 @@
 # zprint at the REPL
 
-[Maps](#maps)
-[Vectors](#vectors)
-[Function Definitions with specs](#function-definitions-with-specs)
-[Explore at the REPL]{#explore-at-the-repl)
-[Exploring deftype](#exploring-deftype)
+[Maps](#maps)  
+[Vectors](#vectors)  
+[Function Definitions with specs](#function-definitions-with-specs)  
+[Explore at the REPL](#explore-at-the-repl)  
+[Exploring deftype](#exploring-deftype)  
 
 ## Maps
 Maps are everywhere in Clojure.  But they can be hard to visualize at the
