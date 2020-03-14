@@ -1,11 +1,11 @@
 # Use zprint to format entire source files
 
-[High Performance Prebuilt Binaries](#high-performance-prebuilt-binaries)
-[Java Uberjar](#java-uberjar)
-[Clojure CLI](#clojure-cli)
-[Lein zprint](#lein-zprint)
-[Other approaches](#other-approaches)
-[Changing the formatting approach using comments in the file](#changing-the-formatting-approach-using-comments-in-the-file) 
+[High Performance Prebuilt Binaries](#high-performance-prebuilt-binaries)  
+[Java Uberjar](#java-uberjar)  
+[Clojure CLI](#clojure-cli)  
+[Lein zprint](#lein-zprint)  
+[Other approaches](#other-approaches)  
+[Changing the formatting approach using comments in the file](#changing-the-formatting-approach-using-comments-in-the-file)   
 
 
 There are several ways to use zprint to format entire source files.
