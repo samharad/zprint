@@ -1,5 +1,13 @@
 # Use zprint to format entire source files
 
+[High Performance Prebuilt Binaries](#high-performance-prebuilt-binaries)
+[Java Uberjar](#java-uberjar)
+[Clojure CLI](#clojure-cli)
+[Lein zprint](#lein-zprint)
+[Other approaches](#other-approaches)
+[Changing the formatting approach using comments in the file](#changing-the-formatting-approach-using-comments-in-the-file) 
+
+
 There are several ways to use zprint to format entire source files.
 
 ## 1. High Performance Prebuilt Binaries
@@ -100,7 +108,7 @@ approaches were created to execute in various Javascript/Clojurescript
 engines.  At this point, the pre-built binaries startup as fast or faster 
 and run much faster than any Javascript based zprint.
 
-# Changing the formatting approach using comments in the file. 
+# Changing the formatting approach using comments in the file
 
 You can alter the way that zprint formats a single function or any
 part of an entire file by including comments in the file which
