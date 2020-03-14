@@ -19,7 +19,7 @@ in the dependencies.  For example:
   :repl-options {:init-ns zpuse.core})
 ```
 
-Even better -- put it in the 
+__Even better -- put it in the:__ 
 
 `:profiles {:dev {:dependencies [zprint "0.5.4]}}`
 
