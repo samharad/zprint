@@ -1,5 +1,11 @@
 # Use zprint at the REPL
 zprint was designed to be very helpful at the REPL.  What do you have to do?
+
+[1. Get zprint into the dependencies](#1-get-zprint-into-the-dependencies)  
+[2. Require zprint when you run the REPL](#2-require-zprint-when-you-run-the-repl)   
+[3. Use zprint](#3-use-zprint)  
+
+
 ## 1. Get zprint into the dependencies
 First, you have to make sure zprint shows up in your dependencies.
 ### Leiningen (project.clj)
