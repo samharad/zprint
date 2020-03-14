@@ -1,10 +1,10 @@
 # Use zprint to format entire source files
 
-[High Performance Prebuilt Binaries](#high-performance-prebuilt-binaries)  
-[Java Uberjar](#java-uberjar)  
-[Clojure CLI](#clojure-cli)  
-[Lein zprint](#lein-zprint)  
-[Other approaches](#other-approaches)  
+[1. High Performance Prebuilt Binaries](#high-performance-prebuilt-binaries)  
+[2. Java Uberjar](#java-uberjar)  
+[3. Clojure CLI](#clojure-cli)  
+[4. Lein zprint](#lein-zprint)  
+[5. Other approaches](#other-approaches)  
 [Changing the formatting approach using comments in the file](#changing-the-formatting-approach-using-comments-in-the-file)   
 
 
