@@ -118,7 +118,6 @@ include the following library when using Clojure 1.8:
   * [What does zprint do?](./doc/reference.md#what-does-zprint-do)
   * [Features](./doc/reference.md#features)
   * The zprint [API](./doc/reference.md#api)
-  * The zprint [API](./doc/reference.adoc#api)
   * Configuration
     * [ Configuration uses an options map](./doc/reference.md#configuration-uses-an-options-map)
     * [ Where to put an options map](./doc/reference.md#where-to-put-an-options-map)
