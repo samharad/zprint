@@ -1,6 +1,6 @@
 # Respect Blank Lines
 
-[Skip immediately to examples](#examples-from-clojure.core)
+[Skip immediately to examples](#examples-from-clojure)
 
 Whenever a blank line appears in the source, it will be "respected", and
 will appear in the output.  However, all other formatting will be
@@ -52,7 +52,7 @@ start on the same line as the leftmost element).
  * [add newlines between map pairs that flow](../reference.md#map-nl-pair-nl-binding-nl)
 
 
-## Examples from clojure.core
+## Examples from clojure
 
 ### Classic zprint 
 ```clojure
