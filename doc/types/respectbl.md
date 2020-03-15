@@ -1,6 +1,6 @@
 # Respect Blank Lines
 
-[Skip immediately to examples](#examples-from-clojure-core)
+[Skip immediately to examples](#examples-from-clojure.core)
 
 Whenever a blank line appears in the source, it will be "respected", and
 will appear in the output.  However, all other formatting will be
