@@ -1,6 +1,6 @@
 # Respect Blank Lines
 
-[Examples](#examples-from-clojure-core)
+[Skip immediately to examples](#examples-from-clojure-core)
 
 Whenever a blank line appears in the source, it will be "respected", and
 will appear in the output.  However, all other formatting will be
@@ -34,11 +34,13 @@ zprint to enforce a particular format on code (say in a group setting),
 then `:respect-bl` is probably not a great choice, since different people
 will want to put blank lines in different places for readability.
 
-There are several ways to get zprint to intentionally place blank lines in particular
-places when formatting code, and these approaches are compatible with using
-zprint to enforce a particular code approach.  These approaches do not depend
-on any particular format for the input -- the blank lines appear regardless
-of the input formatting.  
+There are several ways to get zprint to intentionally place blank
+lines in particular places when formatting code, and these approaches
+are compatible with using zprint to enforce a particular code
+formatting approach.  These approaches do not depend on any particular
+format for the input -- the blank lines appear regardless of the
+input formatting.  That said, they only appear if the rightmost element
+of a pair doesn't start on the same line as the leftmost element.
 
 Here are some styles that will place a blank line between pairs of elements
 where the rightmost element doesn't format as a hang (i.e., doesn't at least
