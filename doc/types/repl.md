@@ -448,7 +448,7 @@ Spec
 ```
 Which would you prefer?
 
-## Explore definitions of function at the REPL
+## Explore definitions of functions at the REPL
 Want to see what `clojure.spec.alpha/describe` looks like?
 ### Classic zprint
 ```clojure
