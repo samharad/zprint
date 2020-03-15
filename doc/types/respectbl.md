@@ -1,5 +1,7 @@
 # Respect Blank Lines
 
+[Examples](#examples-from-clojure-core)
+
 Whenever a blank line appears in the source, it will be "respected", and
 will appear in the output.  However, all other formatting will be
 applied around any blank lines that may appear.  
@@ -43,7 +45,7 @@ where the rightmost element doesn't format as a hang (i.e., doesn't at least
 start on the same line as the leftmost element).
 
  * [add newlines between pairs that flow in let binding vectors](../reference.md#map-nl-pair-nl-binding-nl)
- * [add newlines between cond, assoc pairs that flow](../reference.md#map-nl-pair-nl-binding-nl)
+ * [add newlines between `cond`, `assoc`, etc. pairs that flow](../reference.md#map-nl-pair-nl-binding-nl)
  * [add newlines between extend clauses that flow](../reference.md#extend-nl)
  * [add newlines between map pairs that flow](../reference.md#map-nl-pair-nl-binding-nl)
 
