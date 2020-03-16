@@ -87,6 +87,8 @@ __Leiningen ([via Clojars](http://clojars.org/zprint))__
 
 [![Clojars Project](http://clojars.org/zprint/latest-version.svg)](http://clojars.org/zprint)
 
+[![Clojars Project](https://img.shields.io/clojars/v/zprint.svg)](https://clojars.org/zprint)
+
 
 ### Clojurescript:
 
