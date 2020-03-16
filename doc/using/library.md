@@ -7,7 +7,7 @@ First, you have to make sure zprint shows up in your dependencies.
 #### Leiningen (project.clj)
 Put:
 
-[![Clojars Project](https://img.shields.io/clojars/v/zprint/zprint.svg)](https://clojars.org/zprint)
+[![Clojars Project](https://img.shields.io/clojars/v/zprint.svg)](https://clojars.org/zprint)
 
 in the dependencies.  For example:
 ```clojure
