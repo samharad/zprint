@@ -85,7 +85,7 @@ Some commonly used styles:
 
 __Leiningen ([via Clojars](http://clojars.org/zprint))__
 
-[![Clojars Project](https://img.shields.io/clojars/v/zprint/zprint.svg)](https://clojars.org/zprint)
+[![Clojars Project](https://img.shields.io/clojars/v/zprint.svg)](https://clojars.org/zprint)
 
 ### Clojurescript:
 
