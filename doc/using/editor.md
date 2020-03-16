@@ -1,9 +1,9 @@
 # Use zprint while using an editor
 
-[vim](#vim)
-[emacs](#emacs)
-[Sublime Text](#sublime-text-2-or-3)
-[Atom](#atom)
+[vim](#vim)  
+[emacs](#emacs)  
+[Sublime Text](#sublime-text-2-or-3)  
+[Atom](#atom)  
 
 Many editors have a feature allowing you to pipe some segment of the
 text in the editor through an external program, and replace the existing
