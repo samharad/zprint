@@ -4,7 +4,7 @@
 [2. Java Uberjar](#2-java-uberjar)  
 [3. Clojure CLI](#3-clojure-cli)  
 [4. Lein zprint](#4-lein-zprint)  
-[5. Other approaches](#5-other-approaches)  
+[5. Node based zprint - zprint-clj](#5-node-based-zprint-zprint-clj)
 [Changing the formatting approach using comments in the file](#changing-the-formatting-approach-using-comments-in-the-file)   
 
 
@@ -102,7 +102,7 @@ the `:plugins` key in `project.clj`:
   :repl-options {:init-ns zpuse.core})
 ```
 
-## 5. Node based zprint: zprint-clj
+## 5. Node based zprint - zprint-clj
 
 There is a node based zprint program,
 [zprint-clj](https://github.com/clj-commons/zprint-clj).
