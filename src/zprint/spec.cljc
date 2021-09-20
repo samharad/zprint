@@ -540,6 +540,11 @@
 (s/def ::url (only-keys :opt-un [::cache-dir ::cache-path ::cache-secs]))
 (s/def ::zipper? ::boolean)
 
+;; vishnu-mode
+(s/def ::self-indent+ number?)
+(s/def ::factor-output-streams? ::boolean)
+(s/def ::skip-forms-with set?)
+
 ;;
 ;; # Top level options map
 ;;
@@ -565,7 +570,10 @@
              ::!zprint-elide-skip-next? ::meta ::fn-str ::fn-type-map ::new-zloc
              ::new-l-str ::new-r-str ::option-fn-map ::alt? ::one-line-ok?
              ::tagged-literal #_::memoize? ::remove-final-keys
-             ::modify-sexpr-by-type ::files ::string-str?]))
+             ::modify-sexpr-by-type ::files ::string-str?
+             ;; vishnu-mode
+             ::self-indent+ ::factor-output-streams? ::skip-forms-with
+             ]))
 
 (defn numbers-or-number-pred?
   "If they are both numbers and are equal, or the first is a number 

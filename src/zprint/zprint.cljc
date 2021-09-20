@@ -33,6 +33,7 @@
                                 zwhitespaceorcomment?]]
     [zprint.zutil       :refer [add-spec-to-docstring]]
     [rewrite-clj.parser :as p]
+    [rewrite-clj.node   :as n]
     [rewrite-clj.zip    :as    z
                         :refer [down* of-node* right* tag]]
     #_[taoensso.tufte :as tufte :refer (p defnp profiled profile)]))
@@ -176,7 +177,7 @@
 
 ;!zprint {:format :next :vector {:wrap? false}}
 (defn call-option-fn
-  "Call an option-fn and return a validated map of the merged options. 
+  "Call an option-fn and return a validated map of the merged options.
   Returns [merged-options-map new-options zloc l-str r-str changed?] where
   changed? refers only to changes in any of zloc, l-str, or r-str."
   [caller options ind option-fn zloc l-str r-str]
@@ -876,7 +877,7 @@
 (defn style-lines-hangflow
   "Does style-lines on something formatted like [[:hang ...] [:flow ...]],
   which is the output from fzprint-map-two-up. Assumes each :hang or :flow
-  thing is on a separate line, which may not be true when the 
+  thing is on a separate line, which may not be true when the
   hangflow-style-vec is ultimately given to interpose-...."
   [options ind hangflow-style-vec]
   (when (and hangflow-style-vec
@@ -1897,8 +1898,8 @@
   "Figure the width for a justification of a set of pairs in coll.  
   Also, decide if it makes any sense to justify the pairs at all.
   narrow? says that this call has a narrower width than necessary,
-  and triggers a check to see if any of the firsts are collections. 
-  If they are not collections, and narrow-width is non-nil, then return 
+  and triggers a check to see if any of the firsts are collections.
+  If they are not collections, and narrow-width is non-nil, then return
   nil."
   [caller {{:keys [justify? justify multi-lhs-hang?]} caller, :as options} ind
    narrow-width coll]
@@ -2139,7 +2140,7 @@
   the style-vecs (including indentation and commas) is done by the
   caller of fzprint-map-two-up. Always returns a sequence of vector pairs:
   [[:hang <style-vec-for-one-pair>] [:flow <style-vec-for-one-pair>] ...].
-  If you want a style vec instead, call remove-hangflow on the return 
+  If you want a style vec instead, call remove-hangflow on the return
   from fzprint-map-two-up.  This will use one-line?, but not check to see
   that it actually fits.  If you care about that, then you should check the
   return yourself.  It will, however, make an estimate of whether or not
@@ -3086,6 +3087,38 @@
 
 (declare precede-w-nl)
 
+(defn- ->self-indent+
+  [{:keys [fn-style fn-map user-fn-map] :as options} zloc]
+  (when (zlist? zloc)
+    ;; note: inspired by similar logic in fzprint-list*
+   (let [arg-1-zloc (zfirst zloc)
+         arg-1-coll? (not (or (zkeyword? arg-1-zloc) (zsymbol? arg-1-zloc)))
+         fn-str (if-not arg-1-coll? (zstring arg-1-zloc))
+         fn-style (or fn-style (fn-map fn-str) (user-fn-map fn-str))
+         fn-style (if (and (not fn-style) fn-str)
+                    (fn-map (last (clojure.string/split fn-str #"/")))
+                    fn-style)
+         fn-style (if (= fn-style :none) nil fn-style)
+         fn-style (if (and fn-str (nil? fn-style)) (:default fn-map) fn-style)
+         options (if (vector? fn-style)
+                   (first (zprint.config/config-and-validate
+                            "fn-style:"
+                            nil
+                            options
+                            (if (= (count fn-style) 2)
+                              ; only one option map
+                              (second fn-style)
+                              (if (= :zipper (:ztype options))
+                                (second fn-style)
+                                (nth fn-style 2)))))
+                   options)
+         self-indent+ (:self-indent+ options)]
+     (dbg-pr options "->self-indent+"
+       "fn-str:" fn-str
+       "fn-style:" fn-style
+       "self-indent+:" self-indent+)
+     self-indent+)))
+
 (defn fzprint-flow-seq
   "Takes zloc-seq, a seq of a zloc, created by (zmap identity zloc),
   and returns a style-vec of the result.  Either it fits on one
@@ -3107,7 +3140,9 @@
            "nl-first?" nl-first?
            "force-nl?" force-nl?
            "zloc-seq:" (map zstring zloc-seq))
-   (let [coll-print (fzprint-seq options ind zloc-seq)
+   (let [self-ind+ (zpmap options (comp #(or % 0)
+                                    (partial ->self-indent+ options)) zloc-seq)
+         coll-print (fzprint-seq options ind zloc-seq)
          ; If we are force-nl?, then don't bother trying one-line
          one-line (apply concat-no-nil
                     (interpose [[" " :none :whitespace 8]] coll-print))
@@ -3121,7 +3156,7 @@
          one-line
          (if (not (empty? coll-print))
            (apply concat-no-nil
-             (precede-w-nl options ind coll-print (not nl-first?) nl-count))
+             (precede-w-nl options ind self-ind+ coll-print (not nl-first?) nl-count))
            :noseq)))))
   ([caller options ind zloc-seq]
    (fzprint-flow-seq caller options ind zloc-seq nil nil))
@@ -3197,7 +3232,8 @@
     ;
     (if (or (fzfit-one-line options hr-lines) one-line?)
       hanging
-      (let [flow (prepend-nl options findent (fzprint* options findent zloc))
+      (let [self-indent+ (->self-indent+ options zloc)
+            flow (prepend-nl options (+ findent (or self-indent+ 0)) (fzprint* options findent zloc))
             _ (log-lines options "fzprint-hang-one: flow:" findent flow)
             fd-lines (style-lines options findent flow)
             _ (dbg options "fzprint-hang-one: fd-lines:" fd-lines)
@@ -4789,7 +4825,7 @@
   ([fn-map fn-str] (lookup-fn-str fn-map fn-str #{})))
 
 (defn get-correct-options-map
-  "Given a fn-style, which might be a keyword or might be a vector with 
+  "Given a fn-style, which might be a keyword or might be a vector with
   one or two options maps, get the correct one based on the :ztype 
   in the options. Returns [fn-style options-map]"
   [options fn-style]
@@ -4807,7 +4843,7 @@
 
 (defn lookup-fn-type-map
   "Given a keyword fn-type, look it up in the fn-type-map and handle
-  any aliasing and options maps that come up. This includes adding 
+  any aliasing and options maps that come up. This includes adding
   options maps to the options. Returns [options fn-style]"
   ; In this routine, fn-type is a keyword, and fn-style might be a bare
   ; fn-type, or it might be a vector with options maps.
@@ -4907,7 +4943,7 @@
 (defn fn-style+option-fn
   "Take the current fn-style and lots of other important things,
   and handle lookups in the fn-type-map, as well as calling
-  option-fn(s) as necessary.  
+  option-fn(s) as necessary.
   Returns [options fn-style zloc l-str r-str changed?], where changed?
   refers only to the zloc, l-str, or r-str."
   ([caller options ind fn-style zloc l-str r-str option-fn-set]
@@ -5741,11 +5777,12 @@
             (if (and (not wrap-coll?) (any-zcoll? options new-ind zloc))
               (concat-no-nil l-str-vec
                              (apply concat-no-nil
-                               (precede-w-nl options
-                                             new-ind
-                                             coll-print
-                                             :no-nl-first
-                                             (:nl-count (caller options))))
+                                    (precede-w-nl options
+                                                  new-ind
+                                                  0
+                                                  coll-print
+                                                  :no-nl-first
+                                                  (:nl-count (caller options))))
                              r-str-vec)
               ; Since there are either no collections in this collection or
               ; if there are, it is ok to wrap them, print it wrapped on
@@ -5799,6 +5836,7 @@
                                  (apply concat-no-nil
                                    (precede-w-nl options
                                                  new-ind
+                                                 0
                                                  coll-print
                                                  :no-nl-first
                                                  nl-count-vector))
@@ -5810,6 +5848,7 @@
                                (apply concat-no-nil
                                  (precede-w-nl options
                                                new-ind
+                                               0
                                                coll-print
                                                :no-nl-first
                                                (:nl-count (caller options))))
@@ -8156,6 +8195,7 @@
                                        (apply concat-no-nil
                                          (precede-w-nl options
                                                        new-ind
+                                                       0
                                                        coll-print
                                                        :no-nl-first
                                                        (:nl-count (caller
@@ -8223,7 +8263,7 @@
   a vector of newlines, and the next element of the vector is used after
   any non-comment non-newline is processed.  The last element of the
   vector is used once it runs out."
-  [options ind coll not-first? nl-count]
+  [options ind self-ind+ coll not-first? nl-count]
   (dbg-pr options
           "precede-w-nl: (count coll)" (count coll)
           "not-first?" not-first?
@@ -8234,6 +8274,7 @@
         nl-count (into [1] nl-count)]
     (loop [coll coll
            ind-seq (if (coll? ind) ind (vector ind))
+           self-ind+-seq (if (coll? self-ind+) self-ind+ (vector self-ind+))
            out (transient [])
            added-nl? not-first?
            ; We only do one nl at the beginning, regardless of nl-count
@@ -8260,6 +8301,7 @@
               ; fzprint-newline, to the best of my knowledge, and that is
               ; how it works.
               indent (first ind-seq)
+              self-indent+ (first self-ind+-seq)
               newline? (= what :newline)
               ; Don't pick up embedded comments
               comment? (= what :comment)
@@ -8278,6 +8320,9 @@
             (if-let [next-ind (next ind-seq)]
               next-ind
               ind-seq)
+            (if-let [next-self-ind+ (next self-ind+-seq)]
+              next-self-ind+
+              self-ind+-seq)
             (if newline?
               ; It is a :newline, so just use it as it is. Except if the
               ; next thing out is also a newline, we'll have trailing
@@ -8300,7 +8345,10 @@
                       ; don't put out a newline with spaces before another
                       ; newline -- note that what == :newline here
                       (conj! out [["\n" color :newline 3]])
-                      (conj! out element)))))
+                      (let [next-self-ind+ (or (fnext self-ind+-seq) (first self-ind+-seq))
+                            s' (str "\n" (blanks (max 0 (+ indent next-self-ind+))))
+                            element' (assoc-in element [0 0] s')]
+                        (conj! out element'))))))
               ; It is not a :newline, so we want to make sure we have
               ; the proper number of newlines in front of it.
               (if (>= num-nl (first nl-count-vec))
@@ -8311,7 +8359,7 @@
                           [[(str (apply str
                                    (repeat (- (first nl-count-vec) num-nl)
                                            "\n"))
-                                 (blanks indent)) :none :indent 28]]
+                                 (blanks (max 0 (+ indent self-indent+)))) :none :indent 28]]
                           element)))
             ; Is there a newline as the last thing we just did?
             ; Two ways for that to happen. (which are???)
@@ -9254,6 +9302,151 @@
              (concat [new-caller] key-seq)
              #(do % (get-in options (concat [existing-caller] key-seq)))))
 
+;; -- BEGIN custom emitter handling --
+
+(def ^:private ^:const rupee "\u20b9")
+(def ^:private ^:const emitter-regex #":[^:>\s]*>")
+(def ^:private ^:const munged-emitter-regex #":[^:>\s]*\u20b9")
+
+(defn- emitter-str?
+  [s]
+  (some? (re-matches emitter-regex s)))
+
+(defn- inline-hook-str?
+  [s]
+  (= s ":>>"))
+
+(defn- munged-inline-hook-str?
+  [s]
+  (= s (str ":>" rupee)))
+
+(defn- munge-emitter-str*
+  "Accepts str. Answers keyword."
+  [emitter-or-hook-keyword-str]
+  (assert (s/ends-with? emitter-or-hook-keyword-str ">"))
+  (let [c (count emitter-or-hook-keyword-str)]
+    (keyword (str (subs emitter-or-hook-keyword-str 1 (dec c)) rupee))))
+
+(defn- munged-emitter-str?
+  [s]
+  (some? (re-matches munged-emitter-regex s)))
+
+(defn unmunge-emitter-str
+  [s]
+  (s/replace s #"\u20b9$" ">"))
+
+(defn- find-emitter**
+  [zloc from]
+  (zprint.zutil/zfind-skip-n-nws**
+    #(and
+       (satisfies? rewrite-clj.node.protocols/Node %)
+       (emitter-str? (zstring %))) zloc from))
+
+(defn- find-inline-hook**
+  [zloc from]
+  (zprint.zutil/zfind-skip-n-nws**
+    #(and
+       (satisfies? rewrite-clj.node.protocols/Node %)
+       (inline-hook-str? (zstring %))) zloc from))
+
+(defn- skip-factor-output-streams?
+  [options list-zloc]
+  (or
+    (not (:factor-output-streams? options))
+    (not
+      (zprint.zutil/zfind-skip-n-nws**
+        (comp emitter-str? zstring) list-zloc 1))))
+
+(defn- list-factor**
+  [zloc]
+  (let [children (rewrite-clj.custom-zipper.core/children zloc)
+        emitter (first children)
+        emitter-str (str emitter)
+        _ (assert (or (emitter-str? emitter-str)
+                    (inline-hook-str? emitter-str)) (str emitter))
+        stub (munge-emitter-str* emitter-str)]
+    (n/list-node
+      (cons stub
+        (rest (rewrite-clj.custom-zipper.core/children zloc))))))
+
+(defn- factor-inline-hook*
+  [list-zloc]
+  (if-let [[idx] (find-inline-hook** list-zloc 1)]
+    (reduce
+      rewrite-clj.custom-zipper.core/append-child
+      (zprint.zutil/ztake** idx list-zloc)
+      [(->> list-zloc
+         (zprint.zutil/zdrop** idx)
+         list-factor**)])
+    list-zloc))
+
+(defn- factor-output-streams*
+  [list-zloc]
+  (let [[factored to-factor] (if-let [[idx] (find-emitter** list-zloc 1)]
+                               [(zprint.zutil/ztake** idx list-zloc)
+                                (zprint.zutil/zdrop** idx list-zloc)]
+                               [list-zloc []])
+        factors (loop [tail to-factor acc []]
+                  (if-let [[idx prev-nws] (find-emitter** tail 1)]
+                    (recur
+                      (zprint.zutil/zdrop** idx tail)
+                      (-> acc
+                        (conj
+                          (->> tail
+                            (zprint.zutil/ztake** (inc prev-nws))
+                            factor-inline-hook*
+                            list-factor**))
+                        ;; whitespace before next emitter:
+                        (into
+                          (->> tail
+                            (zprint.zutil/zdrop** (inc prev-nws))
+                            (zprint.zutil/ztake** (- idx prev-nws 1))
+                            rewrite-clj.custom-zipper.core/children))))
+                    (conj acc (list-factor** (factor-inline-hook* tail)))))]
+    (reduce
+      rewrite-clj.custom-zipper.core/append-child factored factors)))
+
+(defn- unfactor-adjust**
+  [adjust? [sv :as s]]
+  (if adjust?
+    (assoc s
+      0
+      (.replaceAll ^String sv "^([\\n\\r]+ +) (.*)$" "$1$2"))
+    s))
+
+(defn- unfactor-output-streams*
+  [style-vec]
+  (letfn [(unmunge* [s] (update s 0 unmunge-emitter-str))]
+    (loop [{:keys [depth in-emitter? in-hook?] :as state} {:depth 0 :in-emitter? false :in-hook? false}
+           [[ss1 :as s1] [ss2 :as s2] & more] style-vec
+           res []]
+      (cond
+        (nil? s2)
+        (conj res s1)
+
+        (= ss1 "(")
+        (cond
+          (and (= 1 depth) (munged-emitter-str? ss2))
+          (recur (assoc state :depth (inc depth) :in-emitter? true) more (conj res (unmunge* s2)))
+          (and (= 2 depth) in-emitter? (munged-inline-hook-str? ss2))
+          (recur (assoc state :depth (inc depth) :in-hook? true) more (conj res (unmunge* s2)))
+          :else
+          (recur (assoc state :depth (inc depth)) (cons s2 more) (conj res s1)))
+
+        (= ss1 ")")
+        (cond
+          (and (= 1 (dec depth)) in-emitter?)
+          (recur (assoc state :depth (dec depth) :in-emitter? false) (cons s2 more) res)
+          (and (= 2 (dec depth)) in-hook?)
+          (recur (assoc state :depth (dec depth) :in-hook? false) (cons s2 more) res)
+          :else
+          (recur (update state :depth dec) (cons s2 more) (conj res s1)))
+
+        :else
+        (recur state (cons s2 more) (conj res (unfactor-adjust** in-emitter? s1)))))))
+
+;; -- END custom emitter handling --
+
 ;; Fix fzprint* to look at cursor to see if there is one, and
 ;; fzprint to set cursor with binding.  If this works, might pass
 ;; it around.  Maybe pass ctx to everyone and they can look at it
@@ -9337,7 +9530,7 @@
     remove-spaces-vec))
 
 (defn modify-sexpr-zloc
-  "Call a function to modify a zloc.  The function came from 
+  "Call a function to modify a zloc.  The function came from
   modify-zloc-by-type.  This is only ever called for structures, not
   zippers. Returns a new zloc."
   [options modify-fn zloc error-str]
@@ -9491,7 +9684,12 @@
                     (> depth max-hang-depth))))
         nil
       (zrecord? zloc) (fzprint-record options indent zloc)
-      (zlist? zloc) (fzprint-list options indent zloc)
+      (zlist? zloc) (if (skip-factor-output-streams? options zloc)
+                      (fzprint-list options indent zloc)
+                      (->> zloc
+                        factor-output-streams*
+                        (fzprint-list options indent)
+                        unfactor-output-streams*))
       (zvector? zloc) (fzprint-vec options indent zloc)
       (or (zmap? zloc) (znamespacedmap? zloc)) (fzprint-map options indent zloc)
       (zset? zloc) (fzprint-set options indent zloc)

@@ -39,7 +39,7 @@
 ;; # Program Version
 ;;
 
-(defn about "Return version of this program." [] (str "zprint-1.3.0"))
+(defn about "Return version of this program." [] (str "zprint-1.3.0-vishnu-mode"))
 
 ;;
 ;; # External Configuration
@@ -2781,7 +2781,7 @@
 (defn validate-style
   "Take a [style-name style-map] map-entry pair and validate the
   style-map.  Return a string if it fails to validate, and nil if
-  it validates correctly.  Note that different (and minimal) validation 
+  it validates correctly.  Note that different (and minimal) validation
   requirements are used for maps containing :style-fn and :style-call."
   [doc-string [style-name style-map]]
   (let [error (cond (:style-fn style-map)
