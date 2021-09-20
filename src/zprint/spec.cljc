@@ -428,6 +428,11 @@
 (s/def ::url (only-keys :opt-un [::cache-dir ::cache-path ::cache-secs]))
 (s/def ::zipper? ::boolean)
 
+;; vishnu-mode
+(s/def ::self-indent+ number?)
+(s/def ::factor-output-streams? ::boolean)
+(s/def ::skip-forms-with set?)
+
 ;;
 ;; # Top level options map
 ;;
@@ -450,7 +455,10 @@
              :alt/uneval ::user-fn-map ::vector ::vector-fn ::version ::width
              ::url ::zipper? ::guide ::guide-debug ::no-validate?
              ::force-validate? ::doc ::next-inner-restore ::fn-style
-             ::!zprint-elide-skip-next? ::meta]))
+             ::!zprint-elide-skip-next? ::meta
+             ;; vishnu-mode
+             ::self-indent+ ::factor-output-streams? ::skip-forms-with
+             ]))
 
 (defn numbers-or-number-pred?
   "If they are both numbers and are equal, or the first is a number 
