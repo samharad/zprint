@@ -1,4 +1,4 @@
-(defproject zprint "1.2.9"
+(defproject zprint "1.2.9-vishnu-mode"
   :description "Pretty print Clojure source and s-expressions"
   :url "https://github.com/kkinnear/zprint"
   :license {:name "MIT License",

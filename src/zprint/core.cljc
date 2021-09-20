@@ -726,7 +726,7 @@
 
 (defn ^:no-doc zprint-str-internal
   "Take a zipper or string and pretty print with fzprint, 
-  output a str (or possibly a structure with {:output {:format :hiccup}}.  
+  output a str (or possibly a structure with {:output {:format :hiccup}}.
   Key :color? is false by default, and should
   be set to true in internal-options to make things colored.
   Special processing for :parse-string-all?, with
@@ -1161,6 +1161,24 @@
       (if (clojure.string/ends-with? hvec-or-str "\n")
         hvec-or-str
         (str hvec-or-str "\n")))))
+
+(defn- confounding-form?
+  ;; note: could extend this to consult options for confounding
+  ;; patterns or syms
+  [{:keys [skip-forms-with] :as _options} form]
+  (let [skip-sym? (comp (set skip-forms-with) name)
+        z (z/of-string (string form))]
+    (some?
+      (rewrite-clj.zip/find-depth-first z
+        #(and
+           (= :token (z/tag %))
+           (let [x (z/sexpr %)]
+             (and (symbol? x) (skip-sym? x))))))))
+
+(defn- allow-format-form?
+  [form]
+  (let [options (get-options)]
+    (not (confounding-form? options form))))
 
 ;!zprint {:format :next :vector {:wrap? false}}
 
