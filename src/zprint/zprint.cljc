@@ -7367,7 +7367,9 @@
 
 ;; -- BEGIN custom emitter handling --
 
+(def ^:private ^:const rupee "\u20b9")
 (def ^:private ^:const emitter-regex #":[^:>\s]*>")
+(def ^:private ^:const munged-emitter-regex #":[^:>\s]*\u20b9")
 
 (defn- emitter-str?
   [s]
@@ -7376,6 +7378,25 @@
 (defn- inline-hook-str?
   [s]
   (= s ":>>"))
+
+(defn- munged-inline-hook-str?
+  [s]
+  (= s (str ":>" rupee)))
+
+(defn- munge-emitter-str*
+  "Accepts str. Answers keyword."
+  [emitter-or-hook-keyword-str]
+  (assert (s/ends-with? emitter-or-hook-keyword-str ">"))
+  (let [c (count emitter-or-hook-keyword-str)]
+    (keyword (str (subs emitter-or-hook-keyword-str 1 (dec c)) rupee))))
+
+(defn- munged-emitter-str?
+  [s]
+  (some? (re-matches munged-emitter-regex s)))
+
+(defn unmunge-emitter-str
+  [s]
+  (s/replace s #"\u20b9$" ">"))
 
 (defn- find-emitter**
   [zloc from]
@@ -7401,8 +7422,15 @@
 
 (defn- list-factor**
   [zloc]
-  (n/list-node
-    (rewrite-clj.custom-zipper.core/children zloc)))
+  (let [children (rewrite-clj.custom-zipper.core/children zloc)
+        emitter (first children)
+        emitter-str (str emitter)
+        _ (assert (or (emitter-str? emitter-str)
+                    (inline-hook-str? emitter-str)) (str emitter))
+        stub (munge-emitter-str* emitter-str)]
+    (n/list-node
+      (cons stub
+        (rest (rewrite-clj.custom-zipper.core/children zloc))))))
 
 (defn- factor-inline-hook*
   [list-zloc]
@@ -7451,33 +7479,34 @@
 
 (defn- unfactor-output-streams*
   [style-vec]
-  (loop [{:keys [depth in-emitter? in-hook?] :as state} {:depth 0 :in-emitter? false :in-hook? false}
-         [[ss1 :as s1] [ss2 :as s2] & more] style-vec
-         res []]
-    (cond
-      (nil? s2)
-      (conj res s1)
-
-      (= ss1 "(")
+  (letfn [(unmunge* [s] (update s 0 unmunge-emitter-str))]
+    (loop [{:keys [depth in-emitter? in-hook?] :as state} {:depth 0 :in-emitter? false :in-hook? false}
+           [[ss1 :as s1] [ss2 :as s2] & more] style-vec
+           res []]
       (cond
-        (and (= 1 depth) (emitter-str? ss2))
-        (recur (assoc state :depth (inc depth) :in-emitter? true) more (conj res s2))
-        (and (= 2 depth) in-emitter? (inline-hook-str? ss2))
-        (recur (assoc state :depth (inc depth) :in-hook? true) more (conj res s2))
-        :else
-        (recur (assoc state :depth (inc depth)) (cons s2 more) (conj res s1)))
+        (nil? s2)
+        (conj res s1)
 
-      (= ss1 ")")
-      (cond
-        (and (= 1 (dec depth)) in-emitter?)
-        (recur (assoc state :depth (dec depth) :in-emitter? false) (cons s2 more) res)
-        (and (= 2 (dec depth)) in-hook?)
-        (recur (assoc state :depth (dec depth) :in-hook? false) (cons s2 more) res)
-        :else
-        (recur (update state :depth dec) (cons s2 more) (conj res s1)))
+        (= ss1 "(")
+        (cond
+          (and (= 1 depth) (munged-emitter-str? ss2))
+          (recur (assoc state :depth (inc depth) :in-emitter? true) more (conj res (unmunge* s2)))
+          (and (= 2 depth) in-emitter? (munged-inline-hook-str? ss2))
+          (recur (assoc state :depth (inc depth) :in-hook? true) more (conj res (unmunge* s2)))
+          :else
+          (recur (assoc state :depth (inc depth)) (cons s2 more) (conj res s1)))
 
-      :else
-      (recur state (cons s2 more) (conj res (unfactor-adjust** in-emitter? s1))))))
+        (= ss1 ")")
+        (cond
+          (and (= 1 (dec depth)) in-emitter?)
+          (recur (assoc state :depth (dec depth) :in-emitter? false) (cons s2 more) res)
+          (and (= 2 (dec depth)) in-hook?)
+          (recur (assoc state :depth (dec depth) :in-hook? false) (cons s2 more) res)
+          :else
+          (recur (update state :depth dec) (cons s2 more) (conj res s1)))
+
+        :else
+        (recur state (cons s2 more) (conj res (unfactor-adjust** in-emitter? s1)))))))
 
 ;; -- END custom emitter handling --
 
