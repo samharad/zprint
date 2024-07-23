@@ -5699,6 +5699,7 @@
                                  (apply concat-no-nil
                                    (precede-w-nl options
                                                  new-ind
+                                                 0
                                                  coll-print
                                                  :no-nl-first
                                                  nl-count-vector))
@@ -5710,6 +5711,7 @@
                                (apply concat-no-nil
                                  (precede-w-nl options
                                                new-ind
+                                               0
                                                coll-print
                                                :no-nl-first
                                                (:nl-count (caller options))))
@@ -7669,7 +7671,7 @@
                                        (apply concat-no-nil
                                          (precede-w-nl options
                                                        new-ind
-                                                     0
+                                                       0
                                                        coll-print
                                                        :no-nl-first
                                                        (:nl-count (caller
@@ -7747,7 +7749,7 @@
         nl-count (into [1] nl-count)]
     (loop [coll coll
            ind-seq (if (coll? ind) ind (vector ind))
-         self-ind+-seq (if (coll? self-ind+) self-ind+ (vector self-ind+))
+           self-ind+-seq (if (coll? self-ind+) self-ind+ (vector self-ind+))
            out (transient [])
            added-nl? not-first?
            ; We only do one nl at the beginning, regardless of nl-count
@@ -7774,7 +7776,7 @@
               ; fzprint-newline, to the best of my knowledge, and that is
               ; how it works.
               indent (first ind-seq)
-            self-indent+ (first self-ind+-seq)
+              self-indent+ (first self-ind+-seq)
               newline? (= what :newline)
               ; Don't pick up embedded comments
               comment? (= what :comment)
@@ -7793,9 +7795,9 @@
             (if-let [next-ind (next ind-seq)]
               next-ind
               ind-seq)
-               (if-let [next-self-ind+ (next self-ind+-seq)]
-                 next-self-ind+
-                 self-ind+-seq)
+            (if-let [next-self-ind+ (next self-ind+-seq)]
+              next-self-ind+
+              self-ind+-seq)
             (if newline?
               ; It is a :newline, so just use it as it is. Except if the
               ; next thing out is also a newline, we'll have trailing
@@ -7819,9 +7821,9 @@
                       ; newline -- note that what == :newline here
                       (conj! out [["\n" color :newline 3]])
                       (let [next-self-ind+ (or (fnext self-ind+-seq) (first self-ind+-seq))
-                               s' (str "\n" (blanks (max 0 (+ indent next-self-ind+))))
-                               element' (assoc-in element [0 0] s')]
-                           (conj! out element'))))))
+                            s' (str "\n" (blanks (max 0 (+ indent next-self-ind+))))
+                            element' (assoc-in element [0 0] s')]
+                        (conj! out element'))))))
               ; It is not a :newline, so we want to make sure we have
               ; the proper number of newlines in front of it.
               (if (>= num-nl (first nl-count-vec))
