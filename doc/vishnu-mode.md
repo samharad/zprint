@@ -4,8 +4,8 @@
 - Building release binaries
   - Install GraalVM. You may use `sdkman` if you have it. https://www.graalvm.org/downloads/#
   - Build for mac (assumes Graal (i.e. native-image) is already on the path):
-    - `lean clean && lein uberjar` 
-    - ` ./build.zprintm "" target/zprint-filter-1.2.9-vishnu-mode zprintm-1.2.9-vishnu-mode`
+    - `lein clean && lein uberjar` 
+    - `./build.zprintm "" target/zprint-filter-1.2.9-vishnu-mode zprintm-1.2.9-vishnu-mode`
   - Build for linux
     - Requires docker
     - `./build.zprintl "22" "1.2.9-vishnu-mode"`
